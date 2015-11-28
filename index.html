@@ -1,0 +1,41 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <title>Declipping</title>
+</head>
+
+<script src="js/AudioController.js"></script>
+<script src="js/DetectClipping.js"></script>
+<script src="js/IndexGlobal.js"></script>
+<script src="js/SignalProcessing.js"></script>
+<script src="js/Test.js"></script>
+<script src="js/third_party/plotly-latest.min.js"></script>
+
+<body onload="InitIndex();">
+  <h1>Declipping</h1>
+  <p>(TODO: Write better words) This website allows you to declip audio. Clipping is a recording artifact
+     which occurs when a microphone is recording at a higher volume level than
+     it can handle. The correct amplitude cannot correctly be represented, and
+     instead the recording amplitude is reduced to a value very near the maximum
+     allowed value. The effect produced sounds a lot like distortion, although 
+     in this case, it is not pleasant or wanted. One example of a recording 
+     scenario where clipping is likely is when recording live concerts through
+     mobile phones. </p>
+  <p>Click the button below to chose a file to upload to the website. The file
+     will be declipped, and an improved version will be downloaded to your
+     computer. chchch</p>
+
+  <input id="audio_input" type="file" accept="audio/*"> </input>
+
+
+
+  <button onclick="PlayAudio();">Play Audio</button>
+  <button onclick="DoDetectClipping();">Detect Clipping</button>
+  <button onclick="RunTests();">Run Tests</button>
+
+  <div id="plot_div" width=100px height=100px></div>
+
+</body>
+
+</html>
