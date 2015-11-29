@@ -7,14 +7,25 @@
  *****************************************************************************/
 
 function PlayAudio() {
-  user_audio_source_node = audio_context.createBufferSource();
-  user_audio_source_node.buffer = user_audio_buffer;
-  user_audio_source_node.connect(audio_context.destination);
-  user_audio_source_node.start(0);
+  if(audio_loaded) {
+    user_audio_source_node = audio_context.createBufferSource();
+    user_audio_source_node.buffer = user_audio_buffer;
+    user_audio_source_node.connect(audio_context.destination);
+    user_audio_source_node.start(0);
+  }
+  else {
+    alert("Load an audio file first.");
+  }
 }
 
 function DoDetectClipping() {
-  // Downmix First.
-  mono_channel = user_audio_buffer.getChannelData(0);
-  var clip_intervals = DetectClipping(mono_channel);
+  if(audio_loaded) {
+    // Downmix First.
+    mono_channel = user_audio_buffer.getChannelData(0);
+    var clip_intervals = DetectClipping(mono_channel);
+  }
+  else {
+    alert("Load an audio file first.");
+  }
+
 }

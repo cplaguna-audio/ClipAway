@@ -10,6 +10,7 @@
 var fs = 44100;
 var length_secs = 40;
 var num_channels = 2;
+var audio_loaded = false;
 
 var audio_context = new AudioContext();
 
@@ -44,11 +45,13 @@ function InitIndex() {
     reader.onload = function(ev) {
       audio_context.decodeAudioData(ev.target.result, function(buffer) {
         user_audio_buffer = buffer; // Attatch our Audio Data as it's Buffer
-
+        audio_loaded = true;
       });
     };
     reader.readAsArrayBuffer(this.files[0]);
   }, false);
+
+  RunTests();
 }
 
 

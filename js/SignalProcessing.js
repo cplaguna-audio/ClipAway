@@ -149,7 +149,10 @@ function FindPeaks(x, thresh, should_sort) {
  * Histogram()
  *
  * Creates a histogram of |x| with equally spaced bins. The extremeties of the
- * histogram are determined by the minimum and maximum signal values.
+ * histogram are determined by the minimum and maximum signal values. If a value
+ * occurs exactly on an edge, then it is valid for that value to be placed into
+ * either adjacent bin (in this implementation, it depends on which bin is 
+ * searched first).
  * 
  * Parameters
  *   x (float array): The signal to analyze.
@@ -213,7 +216,6 @@ function FindBin(x, edges) {
       stop_bin = idx - 1;
     }
   }
-
 }
 
 /*
