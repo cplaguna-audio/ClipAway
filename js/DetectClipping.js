@@ -54,10 +54,16 @@ function DetectClipping(x) {
   var MIN_WIDTH = 18;
   var SEARCH_WIDTH_BINS = 600;
 
+  //var x_r_str = SignalToString(x);
+  //PrintInTab(x_r_str);
+
   // Compute the histogram.
   var hist_arr = Histogram(x, NUM_BINS);
   var amp_hist = hist_arr[0];
   var edges = hist_arr[1];
+  var values_str = SignalToString(amp_hist);
+  PrintInTab(values_str);
+
   amp_hist = ExponentialSmoothingForwardBack(amp_hist, 0.2);
 
   var smooth_amp_hist = ExponentialSmoothingForwardBack(amp_hist, 0.025);
@@ -140,8 +146,11 @@ function DetectClipping(x) {
   var negative_width = -1;
   if(negative_clip_lower_idx > 0) {
     has_negative_clip = true;
-    negative_thresh = (edges[negative_clip_lower_idx] + edges[negative_clip_lower_idx + 1]) / 2;
-    var negative_upper = (edges[negative_clip_upper_idx] + edges[negative_clip_upper_idx + 1]) / 2;
+
+    // We should use the lower edge for the clipping threshold and the upper edge
+    // for the width.
+    negative_thresh = edges[negative_clip_lower_idx + 1];
+    var negative_upper = edges[negative_clip_upper_idx];
     negative_width = (negative_thresh - negative_upper) / 2;
   }
 
@@ -150,8 +159,11 @@ function DetectClipping(x) {
   var positive_width = -1;
   if(positive_clip_lower_idx > 0) {
     has_positive_clip = true;
-    positive_thresh = (edges[positive_clip_lower_idx] + edges[positive_clip_lower_idx + 1]) / 2;
-    var positive_upper = (edges[positive_clip_upper_idx] + edges[positive_clip_upper_idx + 1]) / 2;
+
+    // We should use the lower edge for the clipping threshold and the upper edge
+    // for the width.
+    positive_thresh = edges[positive_clip_lower_idx];
+    var positive_upper = edges[positive_clip_upper_idx + 1];
     positive_width = (positive_upper - positive_thresh) / 2;
   }
 

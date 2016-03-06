@@ -8,7 +8,7 @@
 /*
  * ExponentialSmoothingForwardBack()
  *
- * Feed-forward, single coefficient moving average filter. Applied forwards and
+ * Feed-back, single coefficient moving average filter. Applied forwards and
  * backwards to compensate for delay.
  * 
  * Parameters
@@ -170,13 +170,16 @@ function Histogram(x, num_bins) {
   var min_amp = MyMin(x);
 
   var bin_width = (max_amp - min_amp) / num_bins;
-  var edges = Array.apply(null, Array(num_bins + 1)).map(function(x, i){ 
-    return min_amp + (i * bin_width);
-  });
+  var edges = [];
+  for(var i = 0; i < num_bins + 1; i++) {
+    edges[i] = min_amp + (i * bin_width);
+  }
+
+  edges[num_bins] = max_amp;
 
   var hist = Array.apply(null, Array(num_bins)).map(Number.prototype.valueOf,0);
 
-  for(i = 0; i < x.length; i++) {
+  for(var i = 0; i < x.length; i++) {
     var cur_x = x[i];
     var cur_bin = FindBin(cur_x, edges);
     hist[cur_bin] = hist[cur_bin] + 1;

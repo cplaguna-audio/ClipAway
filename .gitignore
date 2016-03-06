@@ -1,3 +1,7 @@
+# Ignore hacks #
+################
+hacks/*
+
 # Compiled source #
 ###################
 *.com
