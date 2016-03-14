@@ -1,0 +1,87 @@
+/*****************************************************************************\
+ *                                  Index.css                                *
+ *                                                                           *
+ *  Style sheet corresponding to index.html.                                 *
+ *                                                                           *
+ *****************************************************************************/
+
+
+body {
+  background-color:#F9F9F9;
+}
+
+#intro_text {
+  padding-left:25px;
+  paddig-right:25px;
+}
+
+.small_padding {
+  height: 0.05in;
+}
+
+#audio_file_chooser {
+  float:left;
+}
+
+.waveform_title {
+  width:1in;
+  text-align: center;
+  margin:0 auto;
+}
+
+.wavesurfer {
+  border-style: solid; 
+  border-width: 1px;
+  background-color: white;
+}
+
+#transport_container {
+  width:100%;
+}
+
+#transport_buttons_container {
+  padding-top: 3px;
+  padding-left: 3px;
+  padding-right: 3px;
+  width:1in;
+  margin:0 auto;
+  border-style: solid; 
+  border-width: 1px; 
+  background-color: #777777;
+}
+
+.transport_image {
+  height: 0.3in;
+  width: 0.3in;
+}
+
+#transport_zoom_container {
+  float:left;
+  padding:3px;
+  border-style: solid; 
+  border-width: 1px; 
+  background-color: #888888;
+
+}
+
+.zoom_image {
+  height: 0.25in;
+  width: 0.25in; 
+}
+
+#transport_processing_container {
+  float:right;
+  padding:3px;
+}
+
+.processing_button {
+  height: 0.3in;
+  border-style:groove;
+}
+
+#waveform_view {
+  border-style: solid; 
+  border-width: 1px;
+  padding: 0.09in;
+  background-color: #AAAAAA;
+}

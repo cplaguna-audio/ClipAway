@@ -5,9 +5,8 @@
  *                                                                           *
  *****************************************************************************/
 
-var nayuki_fft;
-var module = "kiss_fft_r";
-var block_size;
+var NAYUKI_FFT;
+var NAYUKI_BLOCK_SIZE;
 
 function PolarToCartesian(radius, angle) {
   var x = radius * Math.cos(angle);
@@ -25,7 +24,7 @@ function CartesianToPolar(x, y) {
 
 function GetMagnitudeAndPhase(real, imag, mag, phase) {
 
-  for(var bin_idx = 0; bin_idx < block_size; bin_idx++) {
+  for(var bin_idx = 0; bin_idx < NAYUKI_BLOCK_SIZE; bin_idx++) {
     var polar = CartesianToPolar(real[bin_idx], imag[bin_idx]);
     mag[bin_idx] = polar[0];
     phase[bin_idx] = polar[1];
@@ -34,7 +33,7 @@ function GetMagnitudeAndPhase(real, imag, mag, phase) {
 
 function GetRealAndImag(mag, phase, real, imag) {
 
-  for(var bin_idx = 0; bin_idx < block_size; bin_idx++) {
+  for(var bin_idx = 0; bin_idx < NAYUKI_BLOCK_SIZE; bin_idx++) {
     var cartesian = PolarToCartesian(mag[bin_idx], phase[bin_idx]);
     real[bin_idx] = cartesian[0];
     imag[bin_idx] = cartesian[1];
@@ -42,9 +41,9 @@ function GetRealAndImag(mag, phase, real, imag) {
 }
 
 function InitFFTWrapper(the_block_size) {
-  nayuki_fft = new FFTNayuki(the_block_size);
+  NAYUKI_FFT = new FFTNayuki(the_block_size);
   console.log(the_block_size);
-  block_size = the_block_size;
+  NAYUKI_BLOCK_SIZE = the_block_size;
 }
 
 function ShutdownFFTWrapper() { }
@@ -62,32 +61,44 @@ function ShutdownFFTWrapper() { }
  */
 function FFT(real_input, imag_input, real_output, imag_output) {
 
-  for(var sample_idx = 0; sample_idx < block_size; sample_idx++) {
+  for(var sample_idx = 0; sample_idx < NAYUKI_BLOCK_SIZE; sample_idx++) {
     real_output[sample_idx] = real_input[sample_idx];
     imag_output[sample_idx] = imag_input[sample_idx];
 
   }
 
-  nayuki_fft.forward(real_output, imag_output);
+  NAYUKI_FFT.forward(real_output, imag_output);
 
+}
+
+function InPlaceFFT(real, imag) {
+  NAYUKI_FFT.forward(real, imag);
 }
 
 function IFFT(real_input, imag_input, real_output, imag_output) {
   
   // Scale by the block size.
-  for(var sample_idx = 0; sample_idx < block_size; sample_idx++) {
+  for(var sample_idx = 0; sample_idx < NAYUKI_BLOCK_SIZE; sample_idx++) {
     real_output[sample_idx] = real_input[sample_idx];
     imag_output[sample_idx] = imag_input[sample_idx];
 
   }
 
-  nayuki_fft.inverse(real_output, imag_output);
+  NAYUKI_FFT.inverse(real_output, imag_output);
 
   // Scale by the block size.
-  for(var sample_idx = 0; sample_idx < block_size; sample_idx++) {
-    real_output[sample_idx] = real_output[sample_idx] / block_size;
-    imag_output[sample_idx] = imag_output[sample_idx] / block_size;
-
+  for(var sample_idx = 0; sample_idx < NAYUKI_BLOCK_SIZE; sample_idx++) {
+    real_output[sample_idx] = real_output[sample_idx] / NAYUKI_BLOCK_SIZE;
+    imag_output[sample_idx] = imag_output[sample_idx] / NAYUKI_BLOCK_SIZE;
   }
 }
 
+function InPlaceIFFT(real, imag) {
+  NAYUKI_FFT.inverse(real, imag);
+  
+  // Scale by the block size.
+  for(var sample_idx = 0; sample_idx < NAYUKI_BLOCK_SIZE; sample_idx++) {
+    real[sample_idx] = real[sample_idx] / NAYUKI_BLOCK_SIZE;
+    imag[sample_idx] = imag[sample_idx] / NAYUKI_BLOCK_SIZE;
+  }
+}

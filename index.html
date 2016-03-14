@@ -5,6 +5,9 @@
   <title>ClipAway</title>
 </head>
 
+<link rel="stylesheet" type="text/css" href="css/third_party/w2ui-1.4.3.css"></link>
+<link rel="stylesheet" type="text/css" href="css/index.css">
+
 <script src="js/AudioController.js"></script>
 <script src="js/DetectClipping.js"></script>
 <script src="js/FFTWrapper.js"></script>
@@ -15,49 +18,88 @@
 <script src="js/WaveformInteractor.js"></script>
 <script src="js/WebAudioUtils.js"></script>
 
+<script src="js/third_party/jquery/jquery-1.12.1.min.js"></script>
 <script src="js/third_party/katspaugh-wavesurfer.js-fdd4b7f/wavesurfer.min.js"></script>
 <script src="js/third_party/katspaugh-wavesurfer.js-fdd4b7f/wavesurfer.regions.min.js"></script>
 <script src="js/third_party/nayuki-obj/fft.js"></script>
-<script src="js/third_party/plotly-latest.min.js"></script>
+<script src="js/third_party/plotly/plotly-latest.min.js"></script>
+<script src="js/third_party/w2ui/w2ui-1.4.3.min.js"></script>
 
 
 <body onload="InitIndex();">
-  <h1>ClipAway</h1>
-  <p>(TODO: Write better words) ClipAway allows you to declip audio. Clipping is a recording artifact
-     which occurs when a microphone is recording at a higher sound level. The correct amplitude cannot correctly be represented, and
-     instead the recorded amplitude is reduced to a value very near the maximum
-     allowed value. The effect produced sounds a lot like distortion, although 
-     in this case, it is not pleasant or wanted. One example of a recording 
-     scenario where clipping is likely is when recording live concerts through
-     mobile phones. </p>
-  <p>Click below to chose a file to upload to the website. The file
-     will be declipped, and an improved version will be downloaded to your
-     computer.</p>
-
-  <input id="audio_input" type="file" accept="audio/*"> </input>
-
-  <div id="original_audio_waveform">Input</div>
-  <div id="processed_audio_waveform">Output</div>
-
-  <div id="waveform_interactor_transport">
-    <button onclick="waveform_interactor.ToggleActiveWaveSurfer();">Toggle Active Waveform</button>
-    <button onclick="waveform_interactor.PlayPausePressed();">Toggle Play/Pause</button>
-    <button onclick="waveform_interactor.PlayRegion();">Play Selection</button>
-    <button onclick="waveform_interactor.ZoomIn();">Zoom In</button>
-    <button onclick="waveform_interactor.ZoomOut();">Zoom Out</button>
+  <h1><center><img src="resources/logo_2.png"></img></center></h1>
+  <div id="intro_text">
+    <p>ClipAway allows you to declip audio. Clipping is a recording artifact
+       which occurs when a microphone is recording at a higher sound level. The correct amplitude cannot correctly be represented, and
+       instead the recorded amplitude is reduced to a value very near the maximum
+       allowed value. The effect produced sounds a lot like distortion, although 
+       in this case, it is not pleasant or wanted. One example of a recording 
+       scenario where clipping is likely is when recording live concerts through
+       mobile phones. </p>
+    <p>Click below to chose a file to upload to the website. The file
+       will be declipped, and an improved version will be downloaded to your
+       computer.</p>
   </div>
 
-  <button onclick="ProcessAudio();">Process Audio</button>
-  <button onclick="DoDetectClipping();">Detect Clipping</button>
+<div class="small_padding"></div>
 
-  <div id="plot_div" width=100px height=100px></div>
+<div id="waveform_view">
+  <div id="original_waveform_container">
+    <div width="100%">
+    <input id="audio_file_chooser" class="my_input" type="file" accept="audio/*"> </input>
+    <div class="waveform_title">Input</div>   
+    <div class="small_padding"></div>
+    <div id="original_audio_waveform" class="wavesurfer"></div>
+  </div><div class="small_padding"></div>
 
-  <iframe id="my_iframe" style="display:none;">
-  <script>
-  function Download(url) {
-      document.getElementById('my_iframe').src = url;
-  };
-  </script>
+  <div id="processed_waveform_container">
+    <div class="waveform_title">Output</div>
+    <div class="small_padding"></div>
+    <div id="processed_audio_waveform" class="wavesurfer"></div>
+  </div><div class="small_padding"></div><div class="small_padding"></div>
+
+  <div id="transport_container">
+    <div id="transport_zoom_container">
+      <img id="zoom_in_button" class="zoom_image" type="image" src="resources/transport/plus.png" onclick="WAVEFORM_INTERACTOR.ZoomIn();"></input>
+      <img id="zoom_out_button" class="zoom_image" type="image" src="resources/transport/minus.png" onclick="WAVEFORM_INTERACTOR.ZoomOut();"></input>
+    </div>
+
+    <div id="transport_processing_container">
+      <button class="processing_button" onclick="ProcessAudio();">Process Audio</button>
+      <button class="processing_button" onclick="DoDetectClipping();">Detect Clipping</button>
+    </div>
+
+    <div id="transport_buttons_container">
+      <img id="toggle_waveform_button" class="transport_image" type="image" src="resources/transport/toggle_original.png"></input>
+      <img id="play_pause_button" class="transport_image" type="image" src="resources/transport/play.png"></input>
+      <img id="play_selection_button" class="transport_image" type="image" src="resources/transport/play_selection.png"></input>
+    </div>
+  </div>
+</div>
+
+<div id="audio_processing_progress_popup" style="display: none; width: 650px; height: 110px; overflow: auto">
+    <div rel="title">
+        Processing Audio
+    </div>
+    <div rel="body">
+      <div style="padding: 10; font-size: 11px; line-height: 150%;">
+        Progress: 
+        <div id="progress_bar" style="position: relative; width: 100%; height: 20px; background-color: grey;">
+          <div id="progress_bar_progress" style="position: absolute; width: 1%; height: 100%; background-color: green"></div>
+        </div>
+      </div>
+    </div>
+</div>
+
+<div id="plot_div" width=100px height=100px></div>
+
+<iframe id="my_iframe" style="display:none;">
+<script>
+function Download(url) {
+    document.getElementById('my_iframe').src = url;
+};
+</script>
+
 
 </body>
 

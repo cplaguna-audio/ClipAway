@@ -54,21 +54,10 @@ function OverlapAndAdd(channel, channel_length, start_idx, stop_idx, block, bloc
   }
 }
 
-
-function ApplyGain(audio_buffer) {
-
-  var start = new Date().getTime();
-  console.time("Gain");
-  var buffer_length = audio_buffer.length;
-  for(var channel_idx = 0; channel_idx < audio_buffer.numberOfChannels; channel_idx++) {
-    var cur_channel = audio_buffer.getChannelData(channel_idx);
-    ApplyGainToChannel(cur_channel, buffer_length);
-  }
-  console.timeEnd("Gain");
-
-}
-
-function ApplyGainToChannel(channel, channel_length) {
+function ApplyGainToChannel(channel, channel_idx, gain, params) {
+  block_size = params[1];
+  hop_size = params[2];
+  channel_length = channel.length;
 
   var cur_block = new Float32Array(block_size);
 
@@ -94,13 +83,16 @@ function ApplyGainToChannel(channel, channel_length) {
 
   // Gain, in the frequency domain.
   while(stop_idx < channel_length) {
+    var cur_progress = start_idx / channel_length;
+    postMessage([cur_progress, channel_idx]);
+
     CopyToBlock(channel, channel_length, start_idx, stop_idx, cur_block, block_size);
 
     FFT(cur_block, imag_input, fft_real, fft_imag);
     GetMagnitudeAndPhase(fft_real, fft_imag, fft_mag, fft_phase);
 
     for(var bin_idx = 0; bin_idx < block_size; bin_idx++) {
-      fft_mag[bin_idx] = fft_mag[bin_idx] * 0.6;
+      fft_mag[bin_idx] = fft_mag[bin_idx] * gain;
     }
 
     GetRealAndImag(fft_mag, fft_phase, fft_real, fft_imag);

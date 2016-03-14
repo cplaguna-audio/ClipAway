@@ -9,52 +9,55 @@
 // Global Variables for main.html.
 var RUN_TESTS = false;
 
-var fs = 44100;
-var length_secs = 40;
-var num_channels = 2;
-var audio_loaded = false;
-var block_size = 2048;
-var hop_size = 2048;
-var waveform_interactor;
+var FS = 44100;
+var LENGTH_SECONDS = 40;
+var NUM_CHANNELS = 2;
+var AUDIO_LOADED = false;
+var BLOCK_SIZE = 2048;
+var HOP_SIZE = 2048;
+var WAVEFORM_INTERACTOR;
 
-var audio_context = new AudioContext();
+var AUDIO_CONTEXT = new AudioContext();
 
 // The audio uploaded by the user.
-var input_audio_buffer;  
-var input_audio_source_node; 
+var INPUT_AUDIO_BUFFER;  
+var INPUT_AUDIO_SOURCE_NODE; 
 
 // The processed audio.
-var processed_audio_buffer;
-var processed_audio_source_node;
+var PROCESSED_AUDIO_BUFFER;
+var PROCESSED_AUDIO_SOURCE_NODE;
 
+var PROGRESS_BAR_JQUERRY_ELEMENT;
+var PROGRESS_BAR_ELEMENT;
 
 // Called after the <body> has been loaded.
 function InitIndex() {  
 
-  InitFFTWrapper(block_size); 
-
   // Audio buffer source.
-  var file_input = document.getElementById("audio_input");
+  PROGRESS_BAR_JQUERRY_ELEMENT = $('#audio_processing_progress_popup');
+  PROGRESS_BAR_ELEMENT = document.getElementById('audio_processing_progress_popup');
+  var file_input = document.getElementById("audio_file_chooser");
 
   file_input.addEventListener("change", function() {
     var reader = new FileReader();
     reader.onload = function(ev) {
-      audio_context.decodeAudioData(ev.target.result, function(buffer) {
-        input_audio_buffer = buffer;
-        processed_audio_buffer = CopyAudioBuffer(audio_context, input_audio_buffer);
-        audio_loaded = true;
+      AUDIO_CONTEXT.decodeAudioData(ev.target.result, function(buffer) {
+        INPUT_AUDIO_BUFFER = buffer;
+        PROCESSED_AUDIO_BUFFER = CopyAudioBuffer(AUDIO_CONTEXT, INPUT_AUDIO_BUFFER);
+        AUDIO_LOADED = true;
       });
     };
     reader.readAsArrayBuffer(this.files[0]);
-    waveform_interactor.LoadAudio(this.files[0]);
+    WAVEFORM_INTERACTOR.LoadAudio(this.files[0]);
   }, false);
 
-  waveform_interactor = new WaveformInteractor();
-  waveform_interactor.Init("original_audio_waveform", "processed_audio_waveform");
+  WAVEFORM_INTERACTOR = new WaveformInteractor();
+  WAVEFORM_INTERACTOR.Init("original_audio_waveform", "processed_audio_waveform");
 
   if(RUN_TESTS) {
     RunTests();
   }
+
 }
 
 function IntervalToString(clip_intervals) {
