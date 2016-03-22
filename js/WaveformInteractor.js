@@ -298,29 +298,6 @@ function WaveformInteractor() {
       return;
     }
     this.disabled = true;
-
-    var me = this;
-
-    var buttons = document.getElementsByClassName("processing_button");
-    for(var i = 0; i < buttons.length; i++) {
-      buttons[i].disabled = true;
-      buttons[i].style.opacity = "0.2";
-    }
-
-    var toggle_waveform_button = document.getElementById("toggle_waveform_button");
-    toggle_waveform_button.style.opacity = "0.2";
-
-    var play_pause_button = document.getElementById("play_pause_button");
-    play_pause_button.style.opacity = "0.2";
-
-    var play_selection_button = document.getElementById("play_selection_button");
-    play_selection_button.style.opacity = "0.2";
-
-    buttons = document.getElementsByClassName("zoom_image");
-    for(var i = 0; i < buttons.length; i++) {
-      buttons[i].removeEventListener('click', function() {});
-      buttons[i].style.opacity = "0.2";
-    } 
   }
 
   this.EnableInteraction = function() {
@@ -328,56 +305,6 @@ function WaveformInteractor() {
       return;
     }
     this.disabled = false;
-
-    var me = this;
-
-    var buttons = document.getElementsByClassName("processing_button");
-    for(var i = 0; i < buttons.length; i++) {
-      buttons[i].disabled = false;
-      buttons[i].style.opacity = "1";
-    }
-
-    var toggle_waveform_button = document.getElementById("toggle_waveform_button");
-    toggle_waveform_button.addEventListener('click', function(e) {
-      me.ToggleActiveWaveSurfer();
-    });
-    toggle_waveform_button.style.opacity = "1";
-
-    var play_pause_button = document.getElementById("play_pause_button");
-    play_pause_button.addEventListener('click', function(e) {
-      me.PlayPausePressed()
-    });
-    play_pause_button.style.opacity = "1";
-
-    var play_selection_button = document.getElementById("play_selection_button");
-    play_selection_button.addEventListener('click', function(e) {
-      me.PlayRegion();
-    });
-    play_selection_button.style.opacity = "1";
-
-    var zoom_in_button = document.getElementById("zoom_in_button");
-    zoom_in_button.addEventListener('click', function(e) {
-      me.ZoomIn();
-    });
-    zoom_in_button.style.opacity = "1";
-
-    var zoom_out_button = document.getElementById("zoom_out_button");
-    zoom_out_button.addEventListener('click', function(e) {
-      me.ZoomOut();
-    });
-    zoom_out_button.style.opacity = "1";
-
-    this.original_audio_element.addEventListener('click', function() {
-      if(!me.original_on) {
-        me.TurnOnOriginal();
-      }
-    })
-
-    this.processed_audio_element.addEventListener('click', function() {
-      if(me.original_on) {
-        me.TurnOnProcessed();
-      }
-    })
   }
 
   this.Flush = function() {

@@ -5,61 +5,100 @@
  *  processing unit (gain) is implemented to test the wave interactor.       *
  *****************************************************************************/
 
-function CopyToBlock(channel, channel_length, start_idx, stop_idx, block, block_length) {
+/*
+ * Do a cubic spline interpolation to fix short bursts. The idea is that short
+ * bursts consist of a single peak in the waveform, so a smooth interpolation 
+ * should be good enough. For speed, we build our spline using at most
+ * |MAX_TRAIN_SIZE| samples to the left and right of the burst.
+ */
+function DeclipShortBurstsInPlace(channel, clip_intervals, channel_idx, params) {
+  var channel_length = channel.length;
 
-  for(var channel_idx = start_idx, block_idx = 0; 
-      channel_idx <= stop_idx; 
-      channel_idx++, block_idx++) {
+  /* 
+   * If we have < MIN_TRAIN samples either to the left or to the right, we don't
+   * have enough samples to build reliable splines. We have to ignore the
+   * interval.
+   */
+  var MIN_TRAIN = 3;
+  var MAX_TRAIN_SIZE = 20;
+
+  // Do a separate interpolation for each clip interval.
+  for(var interval_idx = 0; interval_idx < clip_intervals.length; interval_idx++) {
+    var cur_interval = clip_intervals[interval_idx];
+    var burst_start = cur_interval.start;
+    var burst_stop = cur_interval.stop;
+    var num_burst_samples = burst_stop - burst_start + 1;
     
-    if(block_idx < block_length) {
-      if(channel_idx < channel_length) {
-        block[block_idx] = channel[channel_idx];
-      }
-      else {
-        block[block_idx] = 0;
-      }
+    // These intervals are used to find the reliable samples surrounding the
+    // current clip interval.
+    var has_prev_interval = interval_idx > 0;
+    var prev_interval = 0;
+    if(has_prev_interval) {
+      prev_interval = clip_intervals[interval_idx - 1];
     }
-  }
 
+    var has_next_interval = interval_idx < clip_intervals.length - 1;
+    var next_interval = 0;
+    if(has_next_interval) {
+      next_interval = clip_intervals[interval_idx + 1];
+    }
+    
+    // Find the consecutive reliable samples to the left and right of the
+    // burst.
+    var left_start = 1;
+    if(has_prev_interval) {
+      left_start = prev_interval.stop + 1;
+    }
+    var left_stop = burst_start - 1;
+    var num_left_samples = left_stop - left_start + 1;
+    if(num_left_samples > MAX_TRAIN_SIZE) {
+      left_start = left_stop - MAX_TRAIN_SIZE + 1;
+      num_left_samples = left_stop - left_start + 1;
+    }    
+
+    var right_start = burst_stop + 1;
+    var right_stop = channel_length - 1;
+    if(has_next_interval) {
+      right_stop = next_interval.start - 1;
+    }
+    var num_right_samples = right_stop - right_start + 1;
+    if(num_right_samples > MAX_TRAIN_SIZE) {
+      right_stop = right_start + MAX_TRAIN_SIZE - 1;
+      num_right_samples = right_stop - right_start + 1;
+    }
+
+    if(num_left_samples < MIN_TRAIN || num_right_samples < MIN_TRAIN) {
+      continue;
+    }
+    
+    // TODO: Move these indices outside of the loop, aka make this efficient.
+    var left_samples = new Float32Array(num_left_samples);
+    var right_samples = new Float32Array(num_right_samples);
+
+    CopyToBlock(channel, channel_length, left_start, left_stop, left_samples, left_samples.length); 
+    CopyToBlock(channel, channel_length, right_start, right_stop, right_samples, right_samples.length); 
+
+    var left_indices = new Float32Array(num_left_samples);
+    RangeToIndices(left_indices, left_start, left_stop);
+
+    var right_indices = new Float32Array(num_right_samples);
+    RangeToIndices(right_indices, right_start, right_stop);
+
+    var unknown_indices = new Float32Array(num_burst_samples);
+    RangeToIndices(unknown_indices, burst_start, burst_stop);
+    
+    var replacements = CubicSplineInterpolation(left_indices, left_samples, right_indices, right_samples, unknown_indices);
+    CopyToChannel(channel, channel_length, burst_start, burst_stop, replacements, replacements.length);
+  }
 }
 
-function CopyToChannel(channel, channel_length, start_idx, stop_idx, block, block_length) {
-
-  for(var channel_idx = start_idx, block_idx = 0; 
-      channel_idx <= stop_idx; 
-      channel_idx++, block_idx++) {
-    
-    if(channel_idx < channel_length) {
-      if(block_idx < block_length) {
-        channel[channel_idx] = block[block_idx];
-      }
-      else {
-        channel[channel_idx] = 0;
-      }
-    }
-  }
-
-}
-
-function OverlapAndAdd(channel, channel_length, start_idx, stop_idx, block, block_length) {
-  for(var channel_idx = start_idx, block_idx = 0; 
-      channel_idx <= stop_idx; 
-      channel_idx++, block_idx++) {
-    
-    if(block_idx < block_length) {
-      if(channel_idx < channel_length) {
-        channel[channel_idx] = channel[channel_idx] + block[block_idx];
-      }
-    }
-  }
-}
-
-function ApplyGainToChannel(channel, channel_idx, gain, params) {
+function ApplyGainToChannel(in_channel, out_channel, channel_idx, gain, params) {
   block_size = params[1];
   hop_size = params[2];
-  channel_length = channel.length;
+  channel_length = in_channel.length;
 
   var cur_block = new Float32Array(block_size);
+  var cur_window = HannWindow(block_size);
 
   var start_idx = 0;
   var stop_idx = start_idx + block_size - 1;
@@ -86,21 +125,48 @@ function ApplyGainToChannel(channel, channel_idx, gain, params) {
     var cur_progress = start_idx / channel_length;
     postMessage([cur_progress, channel_idx]);
 
-    CopyToBlock(channel, channel_length, start_idx, stop_idx, cur_block, block_size);
+    CopyToBlock(in_channel, channel_length, start_idx, stop_idx, cur_block, block_size); 
 
     FFT(cur_block, imag_input, fft_real, fft_imag);
     GetMagnitudeAndPhase(fft_real, fft_imag, fft_mag, fft_phase);
 
     for(var bin_idx = 0; bin_idx < block_size; bin_idx++) {
-      fft_mag[bin_idx] = fft_mag[bin_idx] * gain;
+      if(bin_idx > 50 && bin_idx < 452) {
+        fft_mag[bin_idx] = 0;
+      }
+      else {
+      }
     }
 
     GetRealAndImag(fft_mag, fft_phase, fft_real, fft_imag);
     IFFT(fft_real, fft_imag, cur_block, imag_output);
 
-    CopyToChannel(channel, channel_length, start_idx, stop_idx, cur_block, block_size);
+    // Apply window.
+    SignalPointwiseMultiplyInPlace(cur_block, cur_window);
+
+    OverlapAndAdd(out_channel, channel_length, start_idx, stop_idx, cur_block, block_size);
     start_idx = start_idx + hop_size;
     stop_idx = start_idx + block_size - 1;
     block_idx++;
   }
+
+  // Window Compensation.
+  var num_blocks = block_idx;
+  var window_compensation = new Float32Array(channel_length);
+  start_idx = 0;
+  stop_idx = block_size - 1;
+  for(var block_idx = 0; block_idx < num_blocks; block_idx++) {
+    OverlapAndAdd(window_compensation, channel_length, start_idx, stop_idx, cur_window, block_size);
+    start_idx = start_idx + hop_size;
+    stop_idx = start_idx + block_size - 1;
+  }
+  
+  // Ensure we don't divide by zero.
+  for(var signal_idx = 0; signal_idx < channel_length; signal_idx++) {
+    if(window_compensation[signal_idx] < 0.01) {
+      window_compensation[signal_idx] = 0.01;
+    }
+  }
+  
+  SignalPointwiseDivideInPlace(out_channel, window_compensation);
 }

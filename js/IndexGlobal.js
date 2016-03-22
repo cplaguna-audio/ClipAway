@@ -6,26 +6,34 @@
  *                                                                           *
  *****************************************************************************/
 
-// Global Variables for main.html.
-var RUN_TESTS = false;
+$(document).ready(InitIndex);
 
-var FS = 44100;
-var LENGTH_SECONDS = 40;
-var NUM_CHANNELS = 2;
-var AUDIO_LOADED = false;
-var BLOCK_SIZE = 2048;
-var HOP_SIZE = 2048;
+// Global Variables for main.html.
+var RUN_TESTS = true;
+
+var BLOCK_SIZE = 512;
+var HOP_SIZE = 128;
 var WAVEFORM_INTERACTOR;
+
+var STATE = { audio_loaded: false,
+              did_clipping_detection: false,
+              did_declip_short_bursts: false,
+              did_declip_long_bursts: false };
+
 
 var AUDIO_CONTEXT = new AudioContext();
 
+var FILE_NAME = "";
+
 // The audio uploaded by the user.
 var INPUT_AUDIO_BUFFER;  
-var INPUT_AUDIO_SOURCE_NODE; 
+
+// Array(channels) of clip_intervals(array of clip_interval object).
+var SHORT_CLIP_INTERVALS;
+var LONG_CLIP_INTERVALS;
 
 // The processed audio.
 var PROCESSED_AUDIO_BUFFER;
-var PROCESSED_AUDIO_SOURCE_NODE;
 
 var PROGRESS_BAR_JQUERRY_ELEMENT;
 var PROGRESS_BAR_ELEMENT;
@@ -37,22 +45,38 @@ function InitIndex() {
   PROGRESS_BAR_JQUERRY_ELEMENT = $('#audio_processing_progress_popup');
   PROGRESS_BAR_ELEMENT = document.getElementById('audio_processing_progress_popup');
   var file_input = document.getElementById("audio_file_chooser");
-
   file_input.addEventListener("change", function() {
+    FlushIndex();
+
+    var full_path = file_input.value;
+    if (full_path) {
+      var start_idx = (full_path.indexOf('\\') >= 0 ? full_path.lastIndexOf('\\') : full_path.lastIndexOf('/'));
+      var file_name = full_path.substring(start_idx);
+      if(file_name.indexOf('\\') === 0 || file_name.indexOf('/') === 0) {
+        file_name = file_name.substring(1);
+      }
+      // Remove extension.
+      file_name = file_name.substring(0, file_name.lastIndexOf('.'));
+    }
+    FILE_NAME = file_name;
+    
     var reader = new FileReader();
     reader.onload = function(ev) {
       AUDIO_CONTEXT.decodeAudioData(ev.target.result, function(buffer) {
         INPUT_AUDIO_BUFFER = buffer;
         PROCESSED_AUDIO_BUFFER = CopyAudioBuffer(AUDIO_CONTEXT, INPUT_AUDIO_BUFFER);
-        AUDIO_LOADED = true;
       });
     };
     reader.readAsArrayBuffer(this.files[0]);
+
     WAVEFORM_INTERACTOR.LoadAudio(this.files[0]);
+    STATE.audio_loaded = true;
+    RefreshIndex();
   }, false);
 
   WAVEFORM_INTERACTOR = new WaveformInteractor();
   WAVEFORM_INTERACTOR.Init("original_audio_waveform", "processed_audio_waveform");
+  RefreshIndex();
 
   if(RUN_TESTS) {
     RunTests();

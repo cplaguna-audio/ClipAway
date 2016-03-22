@@ -49,20 +49,15 @@
  *                        'stop' -> The stop index of the interval.
  * 
  */
-function DetectClipping(x) {
+function DetectClipping(x, params) {
   var NUM_BINS = 6000;
   var MIN_WIDTH = 18;
   var SEARCH_WIDTH_BINS = 600;
-
-  //var x_r_str = SignalToString(x);
-  //PrintInTab(x_r_str);
 
   // Compute the histogram.
   var hist_arr = Histogram(x, NUM_BINS);
   var amp_hist = hist_arr[0];
   var edges = hist_arr[1];
-  var values_str = SignalToString(amp_hist);
-  PrintInTab(values_str);
 
   amp_hist = ExponentialSmoothingForwardBack(amp_hist, 0.2);
 

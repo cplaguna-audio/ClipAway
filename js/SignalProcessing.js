@@ -5,6 +5,29 @@
  *                                                                           *
  *****************************************************************************/
 
+function ZeroMatrix(num_rows, num_cols) {
+  var x = [];
+  for(var row_idx = 0; row_idx < num_rows; row_idx++) {
+    x[row_idx] = [];
+    for(var col_idx = 0; col_idx < num_cols; col_idx++) {
+      x[row_idx][col_idx] = 0;
+    }
+  }
+  return x;
+}
+
+/* 
+ * Create a hann window of the specified length.
+ */
+function HannWindow(len) {
+  y = [];
+  for(var y_idx = 0; y_idx < len; y_idx++) {
+    y[y_idx] = 0.5 * (1 - Math.cos( (2 * Math.PI * y_idx) / (len - 1) ));
+  }
+
+  return y;
+}
+
 /*
  * ExponentialSmoothingForwardBack()
  *
@@ -102,6 +125,26 @@ function SignalSubtract(x, y) {
   }
 
   return z;
+}
+
+/*
+ * Pointwise multiply x and y, store result in x.
+ */
+function SignalPointwiseMultiplyInPlace(x_overwrite, y) {
+  len = y.length < x_overwrite.length ? y.length : x_overwrite.length;
+  for(var idx = 0; idx < len; idx++) {
+    x_overwrite[idx] = x_overwrite[idx] * y[idx];
+  }
+}
+
+/*
+ * Pointwise multiply x and y, store result in x.
+ */
+function SignalPointwiseDivideInPlace(x_overwrite, y) {
+  len = y.length < x_overwrite.length ? y.length : x_overwrite.length;
+  for(var idx = 0; idx < len; idx++) {
+    x_overwrite[idx] = x_overwrite[idx] / y[idx];
+  }
 }
 
 /*
@@ -232,7 +275,7 @@ function FindBin(x, edges) {
  */
 function MyMax(x) {
   var cur_max = -Infinity;
-  for(i = 0; i < x.length; i++) {
+  for(var i = 0; i < x.length; i++) {
     cur_x = x[i]
     if(cur_x > cur_max) {
       cur_max = cur_x;
@@ -244,7 +287,7 @@ function MyMax(x) {
 
 function MyMin(x) {
   var cur_min = Infinity;
-  for(i = 0; i < x.length; i++) {
+  for(var i = 0; i < x.length; i++) {
     cur_x = x[i]
     if(cur_x < cur_min) {
       cur_min = cur_x;
@@ -254,3 +297,11 @@ function MyMin(x) {
   return cur_min;
 }
 
+function MyAverage(x) {
+  var normalization = x.length;
+  var average = 0;
+  for(var i = 0; i < x.length; i++) {
+    average = average + x[i];
+  }
+  return average / normalization;
+}
