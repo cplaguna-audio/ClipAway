@@ -26,28 +26,9 @@ function RunTests() {
 ///////////////////////////////////
 function TestFileDetectClipping() {
   var tests_pass = true;
-  tests_pass = TestMergeClipIntervals();
-  return tests_pass;
-}
 
-function TestMergeClipIntervals() {
-  var tests_pass = true;
-
-  var ci1 = { 'start': 10, 'stop': 15 };
-  var ci2 = { 'start': 13, 'stop': 19 };
-  var ci3 = { 'start': 1, 'stop': 5 };
-  var clip_intervals = [ci1, ci2, ci3];
-  
-  var cr1 = { 'start': 1, 'stop': 5 };
-  var cr2 = { 'start': 10, 'stop': 19 };
-  var correct1 = [cr1, cr2];
-
-  var result = MergeClipIntervals(clip_intervals);
-
-  if(!ClipIntervalEquality(correct1, result)) {
-    console.log('Test Failed: MergeClipIntervals() #1');
-    tests_pass = false;
-  }
+  // No unit tests here. To test, run DetectClipping on a clipped audio file and
+  // verify the output.
 
   return tests_pass;
 }
@@ -58,8 +39,12 @@ function TestMergeClipIntervals() {
 function TestFileSignalProcessing() {
   var tests_pass = true;  
   tests_pass = tests_pass && TestZeroMatrix();
+  tests_pass = tests_pass && TestCircularShiftInPlace();
   tests_pass = tests_pass && TestHannWindow();
+  tests_pass = tests_pass && TestL2Norm();
   tests_pass = tests_pass && TestExponentialSmoothingForwardBack();
+  tests_pass = tests_pass && TestApplyFeedForwardFilter();
+  tests_pass = tests_pass && TestApplyFeedForwardFilterBackwards();
   tests_pass = tests_pass && TestSignalScale();
   tests_pass = tests_pass && TestSignalAdd();
   tests_pass = tests_pass && TestSignalSubtract();
@@ -81,6 +66,23 @@ function TestZeroMatrix() {
   if(!MatrixEquality(result, correct)) {
     console.log('Test failed: TestZeroMatrix() #1');
     console.log(result);
+    tests_pass = false;
+  }
+  return tests_pass;
+}
+
+function TestCircularShiftInPlace() {
+  var tests_pass = true;
+
+  var x = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+  
+  CircularShiftInPlace(x, 4);
+
+  var correct = [4, 5, 6, 7, 8, 9, 0, 1, 2, 3];
+
+  if(!ArrayEquality(x, correct)) {
+    console.log('Test failed: TestCircularShiftInPlace() #1');
+    console.log(x);
     tests_pass = false;
   }
   return tests_pass;
@@ -111,6 +113,22 @@ function TestHannWindow() {
   return tests_pass;
 }
 
+function TestL2Norm() {
+  var TOLERANCE = 0.0001;
+  var tests_pass = true;
+
+  var x = [0.0344, 0.4387, 0.3816, 0.7655, 0.7952, 0.1869, 0.4898, 0.4456, 0.6463, 0.7094];
+  var correct = 1.7181;
+
+  var result = L2Norm(x);
+  if(!(Math.abs(result - correct) < TOLERANCE)) {
+    console.log('Test failed: TestL2Norm() #1');
+    tests_pass = false;
+  }
+
+  return tests_pass;
+}
+
 function TestExponentialSmoothingForwardBack() {
   var tests_pass = true;
 
@@ -121,6 +139,66 @@ function TestExponentialSmoothingForwardBack() {
   var result = ExponentialSmoothingForwardBack(x1, a1);
   if(!ArrayEquality(result, correct1)) {
     console.log('Test failed: ExponentialSmoothingForwardBack() #1');
+    tests_pass = false;
+  }
+
+  return tests_pass;
+}
+
+function TestApplyFeedForwardFilter(x, ff_coeffs) {
+  var TOLERANCE = 0.0001;
+  var tests_pass = true;
+
+  var x1 = [0, 0, 1, 0, 0];
+  var ff_coeffs1 = [0.5, 0.2, 0.1, 0.05];
+  var correct1 = [0, 0, 0.5, 0.2, 0.1];
+
+  var result1 = ApplyFeedForwardFilter(x1, ff_coeffs1)
+  if(!ArrayEqualityTolerance(result1, correct1, TOLERANCE)) {
+    console.log('Test failed: TestApplyFeedForwardFilter() #1');
+    console.log(result1);
+    tests_pass = false;
+  }
+
+  var x2 = [0.0975, 0.2785, 0.5469, 0.9575, 0.9649, 0.1576, 0.9706, 0.9572];
+  var ff_coeffs2 = [0.4854, 0.8003, 0.1419, 0.4218, 0.9157];
+  var correct2 = [0.0473, 0.2132, 0.5022, 0.9831, 1.5190, 1.4702, 1.6388, 2.5475];
+
+  var result2 = ApplyFeedForwardFilter(x2, ff_coeffs2)
+  if(!ArrayEqualityTolerance(result2, correct2, TOLERANCE)) {
+    console.log('Test failed: TestApplyFeedForwardFilter() #2');
+    console.log(result2);
+    console.log(correct2);
+
+    tests_pass = false;
+  }
+
+  return tests_pass;
+}
+
+function TestApplyFeedForwardFilterBackwards(x, ff_coeffs) {
+  var TOLERANCE = 0.0001;
+  var tests_pass = true;
+
+  var x1 = [0, 0, 1, 0, 0];
+  var ff_coeffs1 = [0.5, 0.2, 0.1, 0.05];
+  var correct1 = [0.1, 0.2, 0.5, 0, 0];
+
+  var result1 = ApplyFeedForwardFilterBackwards(x1, ff_coeffs1)
+  if(!ArrayEqualityTolerance(result1, correct1, TOLERANCE)) {
+    console.log('Test failed: TestApplyFeedForwardFilterBackwards() #1');
+    console.log(result1);
+    tests_pass = false;
+  }
+
+  var x2 = [0.7431, 0.3922, 0.6555, 0.1712, 0.7060, 0.0318, 0.2769, 0.0462];
+  var ff_coeffs2 = [0.0971, 0.8235, 0.6948, 0.3171, 0.9502];
+  var correct2 = [1.5758, 0.9509, 0.9684, 0.7518, 0.3018, 0.2632, 0.0649, 0.0045]; 
+
+  var result2 = ApplyFeedForwardFilterBackwards(x2, ff_coeffs2)
+  if(!ArrayEqualityTolerance(result2, correct2, TOLERANCE)) {
+    console.log('Test failed: TestApplyFeedForwardFilterBackwards() #2');
+    console.log(result2);
     tests_pass = false;
   }
 
@@ -410,6 +488,7 @@ function TestMyAverage() {
 ///////////////////////////////////
 function TestFileBlocking() {
   var tests_pass = true;  
+  tests_pass = tests_pass && TestBlockIdxToSampleIdx();
   tests_pass = tests_pass && TestCopyToBlock();
   tests_pass = tests_pass && TestCopyToChannel();
   tests_pass = tests_pass && TestOverlapAndAdd();
@@ -417,6 +496,23 @@ function TestFileBlocking() {
   return tests_pass;
 }
 
+function TestBlockIdxToSampleIdx() {
+  var tests_pass = true;
+
+  var result1 = BlockIdxToSampleIdx(0, 10);
+  if(result1 != 0) {
+    console.log('Test Failed: BlockIdxToSampleIdx() #1');
+    return false;
+  }
+
+  var result1 = BlockIdxToSampleIdx(5, 256);
+  if(result1 != 1280) {
+    console.log('Test Failed: BlockIdxToSampleIdx() #2');
+    return false;
+  }
+
+  return tests_pass;
+}
 
 function TestCopyToBlock() {
   var tests_pass = true;
@@ -742,7 +838,15 @@ function TestFileClipIntervalUtilities() {
   var tests_pass = true;  
   tests_pass = tests_pass && TestSplitClipIntervals();
   tests_pass = tests_pass && TestRangeToIndices();
-
+  tests_pass = tests_pass && TestSortIntervalsByStart();
+  tests_pass = tests_pass && TestCropIntervals();
+  tests_pass = tests_pass && TestThinIntervals();
+  tests_pass = tests_pass && TestInvertIntervals();
+  tests_pass = tests_pass && TestGetIdxOfLeftmostClipInterval();
+  tests_pass = tests_pass && TestGetIdxOfRightmostClipInterval();
+  tests_pass = tests_pass && TestEnlargeIntervals();
+  tests_pass = tests_pass && TestAreOverlapping();
+  tests_pass = tests_pass && TestGetClipSegments();
 
   return tests_pass;
 }
@@ -768,6 +872,286 @@ function TestSplitClipIntervals() {
   if(!ClipIntervalEquality(result_short, correct_short) || !ClipIntervalEquality(result_long, correct_long)) {
     console.log('Test Failed: SplitClipIntervals() #1');
     console.log(result_1);
+    tests_pass = false;
+  }
+
+  return tests_pass;
+}
+
+function TestMergeIntervals() {
+  var tests_pass = true;
+
+  var c1 = {start: 1, stop: 1};
+  var c2 = {start: 4, stop: 15};
+  var c3 = {start: 12, stop: 21};
+  var c4 = {start: 60, stop: 63};
+  var c5 = {start: 100 , stop: 150};
+  var clip_intervals = [c1, c2, c3, c4, c5];
+  var max_dist_apart = 5;
+
+  var cc1 = {start: 1, stop: 1};
+  var cc2 = {start: 4, stop: 21};
+  var cc3 = {start: 50 , stop: 63};
+  var cc4 = {start: 100, stop: 150};
+  var correct = [cc1, cc2, cc3, cc4];
+
+  var result = MergeIntervals(clip_intervals, max_dist_apart);
+  if(!ClipIntervalEquality(correct, result)) {
+    console.log('Test Failed: EnlargeIntervals() #1');
+    console.log(result);
+    tests_pass = false;
+  }
+
+  return tests_pass;
+}
+
+function TestCropIntervals() {
+  var tests_pass = true;
+
+  var c1 = {start: 1, stop: 1};
+  var c2 = {start: 4, stop: 8};
+  var c3 = {start: 12, stop: 21};
+  var c4 = {start: 60, stop: 63};
+  var c5 = {start: 100 , stop: 150};
+  var clip_intervals = [c1, c2, c3, c4, c5];
+  var start_idx = 15;
+  var stop_idx = 115;
+
+  var cc1 = {start: 15, stop: 21};
+  var cc2 = {start: 60 , stop: 63};
+  var cc3 = {start: 100, stop: 115};
+  var correct = [cc1, cc2, cc3];
+
+  var result = CropIntervals(clip_intervals, start_idx, stop_idx);
+  if(!ClipIntervalEquality(correct, result)) {
+    console.log('Test Failed: CropIntervals() #1');
+    console.log(result);
+    tests_pass = false;
+  }
+
+  return tests_pass;
+}
+
+function TestThinIntervals() {
+  var tests_pass = true;
+
+  var c1 = {start: 1, stop: 1};
+  var c2 = {start: 4, stop: 8};
+  var c3 = {start: 12, stop: 21};
+  var c4 = {start: 60, stop: 63};
+  var c5 = {start: 100 , stop: 150};
+  var clip_intervals = [c1, c2, c3, c4, c5];
+  var thin_length = 7;
+
+  var correct = [c3, c5];
+
+  var result = ThinIntervals(clip_intervals, thin_length);
+  if(!ClipIntervalEquality(correct, result)) {
+    console.log('Test Failed: ThinIntervals() #1');
+    console.log(result);
+    tests_pass = false;
+  }
+
+  return tests_pass;
+}
+
+function TestInvertIntervals() {
+  var tests_pass = true;
+
+  var c1 = {start: 12, stop: 21};
+  var c2 = {start: 32, stop: 44};
+  var c3 = {start: 60, stop: 63};
+  var clip_intervals = [c1, c2, c3];
+  var start_idx = 10;
+  var stop_idx = 70;
+
+  var cc1 = {start:10, stop:11};
+  var cc2 = {start:22, stop:31};
+  var cc3 = {start:45, stop:59};
+  var cc4 = {start:64, stop:70};
+
+  var correct = [cc1, cc2, cc3, cc4];
+
+  var result = InvertIntervals(clip_intervals, start_idx, stop_idx);
+  if(!ClipIntervalEquality(correct, result)) {
+    console.log('Test Failed: InvertIntervals() #1');
+    console.log(result);
+    tests_pass = false;
+  }
+
+  return tests_pass;
+}
+
+function TestGetIdxOfLeftmostClipInterval() {
+  var tests_pass = true;
+
+  var c1 = {start: 1, stop: 1};
+  var c2 = {start: 4, stop: 8};
+  var c3 = {start: 12, stop: 21};
+  var c4 = {start: 60, stop: 63};
+  var c5 = {start: 100 , stop: 150};
+  var clip_intervals = [c1, c2, c3, c4, c5];
+  var start_idx = 16;
+
+  var correct = 2;
+
+  var result = GetIdxOfLeftmostClipInterval(clip_intervals, start_idx);
+  if(correct !== result) {
+    console.log('Test Failed: GetIdxOfLeftmostClipInterval() #1');
+    console.log(result);
+    tests_pass = false;
+  }
+
+  return tests_pass;
+}
+
+function TestGetIdxOfRightmostClipInterval() {
+  var tests_pass = true;
+
+  var c1 = {start: 1, stop: 1};
+  var c2 = {start: 4, stop: 8};
+  var c3 = {start: 12, stop: 21};
+  var c4 = {start: 60, stop: 63};
+  var c5 = {start: 100 , stop: 150};
+  var clip_intervals = [c1, c2, c3, c4, c5];
+  var stop_idx = 62;
+
+  var correct = 3;
+
+  var result = GetIdxOfRightmostClipInterval(clip_intervals, stop_idx);
+  if(correct !== result) {
+    console.log('Test Failed: GetIdxOfRightmostClipInterval() #1');
+    console.log(result);
+    tests_pass = false;
+  }
+
+  return tests_pass;
+}
+
+function TestEnlargeIntervals() {
+  var tests_pass = true;
+
+  var c1 = {start: 1, stop: 1};
+  var c2 = {start: 4, stop: 8};
+  var c3 = {start: 12, stop: 21};
+  var c4 = {start: 60, stop: 63};
+  var c5 = {start: 100 , stop: 150};
+  var clip_intervals = [c1, c2, c3, c4, c5];
+  var enlarge_size = 5;
+  var signal_length = 153;
+
+
+  var cc1 = {start: 1, stop: 26};
+  var cc2 = {start: 55, stop: 68};
+  var cc3 = {start: 95 , stop: 153};
+  var correct = [cc1, cc2, cc3];
+
+  var result = EnlargeIntervals(clip_intervals, enlarge_size, signal_length);
+  if(!ClipIntervalEquality(correct, result)) {
+    console.log('Test Failed: EnlargeIntervals() #1');
+    console.log(result);
+    tests_pass = false;
+  }
+
+  return tests_pass;
+}
+
+function TestAreOverlapping() {
+  var tests_pass = true;
+
+  var c1 = {start: 1, stop: 1};
+  var c2 = {start: 4, stop: 8};
+  var c3 = {start: 12, stop: 21};
+  var c4 = {start: 60, stop: 63};
+  var c5 = {start: 100 , stop: 150};
+  var clip_intervals = [c5, c2, c1, c4, c3];
+  var start_idx_1 = 25;
+  var stop_idx_1 = 40;
+
+  var correct_1 = false;
+
+  var result_1 = AreOverlapping(clip_intervals, start_idx_1, stop_idx_1);
+  if(!(correct_1 === result_1)) {
+    console.log('Test Failed: TestAreOverlapping() #1');
+    tests_pass = false;
+  }
+
+  var start_idx_2 = 55;
+  var stop_idx_2 = 62;
+
+  var correct_2 = true;
+
+  var result_2 = AreOverlapping(clip_intervals, start_idx_2, stop_idx_2);
+  if(!(correct_2 === result_2)) {
+    console.log('Test Failed: TestAreOverlapping() #2');
+    tests_pass = false;
+  }
+
+  var start_idx_3 = 110;
+  var stop_idx_3 = 120;
+
+  var correct_3 = true;
+
+  var result_3 = AreOverlapping(clip_intervals, start_idx_3, stop_idx_3);
+  if(!(correct_3 === result_3)) {
+    console.log('Test Failed: TestAreOverlapping() #3');
+    tests_pass = false;
+  }
+
+  var start_idx_4 = 7;
+  var stop_idx_4 = 9;
+
+  var correct_4 = true;
+
+  var result_4 = AreOverlapping(clip_intervals, start_idx_4, stop_idx_4);
+  if(!(correct_4 === result_4)) {
+    console.log('Test Failed: TestAreOverlapping() #4');
+    tests_pass = false;
+  }
+
+  return tests_pass;
+}
+
+function TestGetClipSegments() {
+  var tests_pass = true;
+
+  var block_size = 16;
+  var hop_size = 8;
+  var x_length = 40;
+  var c1 = {start: 2, stop: 7};
+  var c2 = {start: 25, stop: 30};
+  var clip_intervals = [c1, c2];
+
+  var s1 = {start: 0, stop: 0};
+  var s2 = {start: 2, stop: 3};
+  var correct = [s1, s2];
+
+  var result = GetClipSegments(clip_intervals, block_size, hop_size, x_length);
+  if(!ClipIntervalEquality(correct, result)) {
+    console.log('Test Failed: TestGetClipSegments() #1');
+    console.log(result);
+    tests_pass = false;
+  }
+
+  return tests_pass;
+}
+
+function TestSortIntervalsByStart() {
+  var tests_pass = true;
+
+  var c1 = {start: 1, stop: 1};
+  var c2 = {start: 4, stop: 8};
+  var c3 = {start: 12, stop: 21};
+  var c4 = {start: 60, stop: 63};
+  var c5 = {start: 100 , stop: 150};
+  var clip_intervals = [c5, c2, c1, c4, c3];
+
+  var correct = [c1, c2, c3, c4, c5];
+
+  var result = SortIntervalsByStart(clip_intervals);
+  if(!ClipIntervalEquality(correct, result)) {
+    console.log('Test Failed: SortIntervalsByStart() #1');
+    console.log(result);
     tests_pass = false;
   }
 

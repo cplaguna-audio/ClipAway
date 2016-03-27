@@ -26,6 +26,8 @@
   <script src="js/Processing/ClippingDetectionWorker.js"></script>
   <script src="js/Processing/Declip.js"></script>
   <script src="js/Processing/DeclipShortBurstsWorker.js"></script>
+  <script src="js/Processing/DeclipLongBurstsWorker.js"></script>
+  <script src="js/Processing/GetKnownPointsWorker.js"></script>
   <script src="js/SignalProcessing.js"></script>
   <script src="js/Test.js"></script>
   <script src="js/WaveformInteractor.js"></script>
@@ -74,6 +76,8 @@
       <div id="transport_processing_container">
         <button id="detect_clipping_button" class="processing_button" onclick="DoDetectClipping();">Detect Clipping</button>
         <button id="declip_short_bursts_button" class="processing_button" onclick="DoDeclipShortBursts();">Declip Short Bursts</button>
+        <button id="get_known_points_button" class="processing_button" onclick="DoGetKnownPoints();">GetKnownPoints</button>
+        <button id="declip_long_bursts_button" class="processing_button" onclick="DoDeclipLongBursts();">Declip Long Bursts</button>
         <button id="download_audio_button" class="processing_button" onclick="DownloadProcessedAudio()">Save Output</div>
       </div>
 

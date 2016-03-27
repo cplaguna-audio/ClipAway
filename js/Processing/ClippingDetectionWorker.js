@@ -27,13 +27,13 @@ self.importScripts('../ClipIntervalUtilities.js',
  *    [3]: long_clip_intervals: array of clip_interval (see above)
  */
 onmessage = function(e) {
-  channel_idx = e.data[0];
-  audio_buffer = e.data[1];
-  params = e.data[2];
-  block_size = params[1];
+  var channel_idx = e.data[0];
+  var audio_buffer = e.data[1];
+  var params = e.data[2];
+  var block_size = params[1];
 
-  clip_intervals = DetectClipping(audio_buffer, params);
-  split_clip_intervals = SplitClipIntervals(clip_intervals, SHORT_BURST_CUTOFF_SAMPLES);
+  var clip_intervals = DetectClipping(audio_buffer, params);
+  var split_clip_intervals = SplitClipIntervals(clip_intervals, SHORT_BURST_CUTOFF_SAMPLES);
 
   postMessage([1.1, channel_idx, split_clip_intervals[0], split_clip_intervals[1]]);
 }

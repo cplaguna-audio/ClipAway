@@ -53,7 +53,7 @@ function ProcessAudio() {
 }
 
 function DoDeclipShortBursts() {
- console.time('DeclipShort');
+  console.time('DeclipShort');
   var num_channels = INPUT_AUDIO_BUFFER.numberOfChannels;
 
   // Start up the progress bar pop-up.
@@ -99,6 +99,111 @@ function DoDeclipShortBursts() {
       audio_processing_worker.postMessage([channel_idx, INPUT_AUDIO_BUFFER.getChannelData(channel_idx), SHORT_CLIP_INTERVALS[channel_idx], params]);
     }
   }
+}
+
+function DoGetKnownPoints() {  
+  console.time('GetKnownPoints');
+  var num_channels = INPUT_AUDIO_BUFFER.numberOfChannels;
+
+  KNOWN_POINTS = [];
+  for(var channel_idx = 0; channel_idx < num_channels; channel_idx++) {
+    KNOWN_POINTS[channel_idx] = [];
+  }
+
+  // Start up the progress bar pop-up.
+  PROGRESS_BAR_JQUERRY_ELEMENT.w2popup({showClose: false, modal:true});
+
+  UpdateProgressBar(0);
+
+  // Start the audio processing on a separate thread.
+  var progress = new Float32Array(num_channels);
+  for(channel_idx = 0; channel_idx < num_channels; channel_idx++) {
+    progress[channel_idx] = 0;
+  }
+
+  if (window.Worker) {
+    for(channel_idx = 0; channel_idx < num_channels; channel_idx++) {
+      var audio_processing_worker = new Worker("js/Processing/GetKnownPointsWorker.js");
+
+      audio_processing_worker.onmessage = function(e) {
+        cur_progress = e.data[0];
+        the_channel_idx = e.data[1]
+        progress[the_channel_idx] = cur_progress;
+        if(cur_progress > 1) {
+          cur_known_points = e.data[2];
+          KNOWN_POINTS[the_channel_idx] = cur_known_points;
+
+          min_progress = MyMin(progress);
+          if(min_progress > 1) {
+            console.timeEnd('GetKnownPoints');
+            w2popup.close();
+
+            STATE.did_get_known_points = true;
+            RefreshIndex();
+          }
+        }
+        else {
+          avg_progress = MyAverage(progress);
+          UpdateProgressBar(avg_progress);
+        }
+
+      };
+
+      params = [INPUT_AUDIO_BUFFER.sampleRate, BLOCK_SIZE, HOP_SIZE, MIN_FFT_LENGTH];
+      audio_processing_worker.postMessage([channel_idx, PROCESSED_AUDIO_BUFFER.getChannelData(channel_idx), LONG_CLIP_INTERVALS[channel_idx], params]);
+    }
+  }
+  
+}
+
+function DoDeclipLongBursts() {
+
+  console.time('DeclipLongBursts');
+  var num_channels = INPUT_AUDIO_BUFFER.numberOfChannels;
+
+  // Start up the progress bar pop-up.
+  PROGRESS_BAR_JQUERRY_ELEMENT.w2popup({showClose: false, modal:true});
+  UpdateProgressBar(0);
+
+  // Start the audio processing on a separate thread.
+  var progress = new Float32Array(num_channels);
+  for(channel_idx = 0; channel_idx < num_channels; channel_idx++) {
+    progress[channel_idx] = 0;
+  }
+
+  if (window.Worker) {
+    for(channel_idx = 0; channel_idx < num_channels; channel_idx++) {
+      var audio_processing_worker = new Worker("js/Processing/DeclipLongBurstsWorker.js");
+
+      audio_processing_worker.onmessage = function(e) {
+        cur_progress = e.data[0];
+        the_channel_idx = e.data[1]
+        progress[the_channel_idx] = cur_progress;
+        if(cur_progress > 1) {
+          processed_channel = e.data[2];
+          PROCESSED_AUDIO_BUFFER.copyToChannel(processed_channel, the_channel_idx);
+          WAVEFORM_INTERACTOR.UpdateProcessedAudio(PROCESSED_AUDIO_BUFFER);
+          min_progress = MyMin(progress);
+          if(min_progress > 1) {
+            console.timeEnd('DeclipLongBursts');
+            w2popup.close();
+
+            STATE.did_declip_long_bursts = true;
+            RefreshIndex();
+          }
+        }
+        else {
+          avg_progress = MyAverage(progress);
+          UpdateProgressBar(avg_progress);
+        }
+
+      };
+
+      params = [INPUT_AUDIO_BUFFER.sampleRate, BLOCK_SIZE, HOP_SIZE];
+      audio_processing_worker.postMessage([channel_idx, PROCESSED_AUDIO_BUFFER.getChannelData(channel_idx), LONG_CLIP_INTERVALS[channel_idx], KNOWN_POINTS[channel_idx], params]);
+    }
+  }
+  
 }
 
 function DoDetectClipping() {
@@ -286,6 +391,29 @@ function RefreshIndex() {
     declip_short_bursts_button.style.opacity = "0.2";
   }
 
+  if(ShouldEnableGetKnownPoints()) {
+    var get_known_points_button = document.getElementById("get_known_points_button");
+    get_known_points_button.disabled = false;
+    get_known_points_button.style.opacity = "1";
+  }
+  else {
+    var get_known_points_button = document.getElementById("get_known_points_button");
+    get_known_points_button.disabled = true;
+    get_known_points_button.style.opacity = "0.2";
+  }
+
+  if(ShouldEnableDeclipLongBursts()) {
+    var declip_long_bursts_button = document.getElementById("declip_long_bursts_button");
+    declip_long_bursts_button.disabled = false;
+    declip_long_bursts_button.style.opacity = "1";
+  }
+  else {
+    var declip_long_bursts_button = document.getElementById("declip_long_bursts_button");
+    declip_long_bursts_button.disabled = true;
+    declip_long_bursts_button.style.opacity = "0.2";
+  }
+
+
   // 4. Check remove long bursts button.
 
 }
@@ -317,4 +445,12 @@ function ShouldEnableDetectClipping() {
 
 function ShouldEnableDeclipShortBursts() {
   return STATE.audio_loaded && STATE.did_clipping_detection;
+}
+
+function ShouldEnableGetKnownPoints() {
+  return STATE.audio_loaded && STATE.did_clipping_detection && STATE.did_declip_short_bursts;
+}
+
+function ShouldEnableDeclipLongBursts() {
+  return STATE.audio_loaded && STATE.did_clipping_detection && STATE.did_declip_short_bursts && STATE.did_get_known_points;
 }

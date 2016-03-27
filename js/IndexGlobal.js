@@ -13,11 +13,13 @@ var RUN_TESTS = true;
 
 var BLOCK_SIZE = 512;
 var HOP_SIZE = 128;
+var MIN_FFT_LENGTH = 128;
 var WAVEFORM_INTERACTOR;
 
 var STATE = { audio_loaded: false,
               did_clipping_detection: false,
               did_declip_short_bursts: false,
+              did_get_known_points: false,
               did_declip_long_bursts: false };
 
 
@@ -31,6 +33,9 @@ var INPUT_AUDIO_BUFFER;
 // Array(channels) of clip_intervals(array of clip_interval object).
 var SHORT_CLIP_INTERVALS;
 var LONG_CLIP_INTERVALS;
+
+// Array(channels) of array of known_points({ magnitude, time }).
+var KNOWN_POINTS;
 
 // The processed audio.
 var PROCESSED_AUDIO_BUFFER;

@@ -180,7 +180,7 @@ function DetectClipping(x, params) {
   var clip_intervals = [];
   clip_intervals.push.apply(clip_intervals, negative_clip_intervals);
   clip_intervals.push.apply(clip_intervals, positive_clip_intervals);
-  clip_intervals = MergeClipIntervals(clip_intervals);
+  clip_intervals = MergeIntervals(clip_intervals, 1);
 
   // console.log('Negative level: ' + negative_thresh + ', negative width: ' + negative_width); 
   // console.log('Positive level: ' + positive_thresh + ', positive width: ' + positive_width);
@@ -272,62 +272,6 @@ function GetClipIntervals(x, peaks, thresh) {
     
     clip_intervals.push({ 'start': start_idx, 'stop': stop_idx });
   }
-  clip_intervals = MergeClipIntervals(clip_intervals);
+  clip_intervals = MergeIntervals(clip_intervals, 1);
   return clip_intervals;
 }
-
-/*
- * MergeClipIntervals()
- *
- * Merges clip intervals that have overlapping samples. Sorts the intervals by
- * start time.
- * 
- * Parameters
- *   redundant_intervals (object array): The array of clip intervals which 
- *                                       contains unsorted or redundant
- *                                       intervals.
- *     Object properties: 'start' -> The start index of the interval.
- *                        'stop' -> The stop index of the interval.
- *
- * Return Value
- *   merged_intervals (array of objects): The merged clip intervals. 
- *     Object properties: 'start' -> The start index of the interval.
- *                        'stop' -> The stop index of the interval.
- * 
- */
-function MergeClipIntervals(redundant_intervals) {
-  var merged_intervals = [];
-  if(redundant_intervals.length == 0) {
-    return merged_intervals;
-  }
-
-  redundant_intervals.sort(function(a, b) {
-    return a.start - b.start;
-  });
-  
-  var prev_start = redundant_intervals[0].start;
-  var prev_stop = redundant_intervals[0].stop;
-  merged_intervals.push(redundant_intervals[0]);
-
-  for(var interval_idx = 1; interval_idx < redundant_intervals.length; interval_idx++) {
-    var cur_start = redundant_intervals[interval_idx].start;
-    var cur_stop = redundant_intervals[interval_idx].stop;
-    
-    // Check to merge.
-    if(cur_start <= prev_stop + 1) {
-      new_start = prev_start;
-      new_stop = Math.max(prev_stop, cur_stop);
-      merged_intervals[merged_intervals.length - 1] = { 'start': new_start, 'stop': new_stop };
-    }
-    // No merging.
-    else {
-      merged_intervals.push({ 'start': cur_start, 'stop': cur_stop });
-    }
-    
-    prev_start = merged_intervals[merged_intervals.length - 1].start;
-    prev_stop = merged_intervals[merged_intervals.length - 1].stop;
-  }
-    
-  return merged_intervals;
-}
-

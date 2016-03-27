@@ -4,8 +4,15 @@
  *  Utilities for blocking audio.                                            *
  *****************************************************************************/
 
+/*
+ * Convert from a block index to a sample index.
+ */
+function BlockIdxToSampleIdx(block_idx, hop_size) {
+  return ((block_idx) * hop_size);
+}
+
 /* 
- * Copy channel[start_idx:stop-idx] to block[0:copy_length]. If copy_length is
+ * Copy channel[start_idx:stop_idx] to block[0:copy_length]. If copy_length is
  * greater than block_length, only copy block_length samples. If we overrun 
  * channel's memory, then copy the remaining amount of zeros into block.
  */
@@ -28,7 +35,7 @@ function CopyToBlock(channel, channel_length, start_idx, stop_idx, block, block_
 }
 
 /* 
- * Copy block[0:copy_length] to channel[start_idx:stop-idx]. If copy_length is
+ * Copy block[0:copy_length] to channel[start_idx:stop_idx]. If copy_length is
  * greater than channel_length, only copy block_length samples. If we overrun 
  * blocks's memory, then copy the remaining amount of zeros into channel.
  */

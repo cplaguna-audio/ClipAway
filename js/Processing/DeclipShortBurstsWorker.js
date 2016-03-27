@@ -26,10 +26,10 @@ self.importScripts('Blocking.js',
  *    [2]: processed channel
  */
 onmessage = function(e) {
-  channel_idx = e.data[0];
-  audio_buffer = e.data[1];
-  clip_intervals = e.data[2];
-  params = e.data[3];
+  var channel_idx = e.data[0];
+  var audio_buffer = e.data[1];
+  var clip_intervals = e.data[2];
+  var params = e.data[3];
 
   DeclipShortBurstsInPlace(audio_buffer, clip_intervals, channel_idx, params);
 

@@ -16,16 +16,60 @@ function ZeroMatrix(num_rows, num_cols) {
   return x;
 }
 
+function CircularShiftInPlace(x, shift_left_amount) {
+
+  var x_length = x.length;
+
+  // The number of values we've replaced. It will end up becomming x_length.
+  var count = 0;
+
+  // For non-prime x_length's.
+  var offset = 0;
+
+  while(count < x_length) {
+    var write_idx = offset;
+    var tmp = x[write_idx];
+    var read_idx = (shift_left_amount + write_idx) % x_length;
+
+    // Do a round of swapping.
+    while(read_idx != offset) {
+      x[write_idx] = x[read_idx];
+      count++;
+
+      write_idx = read_idx;
+      read_idx = (shift_left_amount + write_idx) % x_length;
+    }
+
+    x[write_idx] = tmp;
+    count++;
+
+    // Move to the next round.
+    offset++;
+  }
+}
+
+
 /* 
  * Create a hann window of the specified length.
  */
 function HannWindow(len) {
-  y = [];
+  y = new Float32Array(len);
   for(var y_idx = 0; y_idx < len; y_idx++) {
     y[y_idx] = 0.5 * (1 - Math.cos( (2 * Math.PI * y_idx) / (len - 1) ));
   }
 
   return y;
+}
+
+function L2Norm(x) {
+  var x_length = x.length;
+  var norm = 0;
+
+  for(var x_idx = 0; x_idx < x_length; x_idx++) {
+    norm = norm + (x[x_idx] * x[x_idx]);
+  }
+
+  return Math.sqrt(norm);
 }
 
 /*
@@ -58,6 +102,53 @@ function ExponentialSmoothingForwardBack(x, alpha) {
   return y;
 }
 
+// Essentially convolution. Crops out results past the length of x.
+function ApplyFeedForwardFilter(x, ff_coeffs) {
+  var x_length = x.length;
+  var y = new Float32Array(x_length);
+  var filter_length = ff_coeffs.length;
+
+  for(var write_idx = 0; write_idx < x_length; write_idx++) {
+    var cur_value = 0;
+    for(var filter_idx = 0; filter_idx < filter_length; filter_idx++) {
+      var read_idx = write_idx - filter_idx;
+      if(read_idx < 0) {
+        break;
+      }
+      cur_value = cur_value + (x[read_idx] * ff_coeffs[filter_idx]);
+    }
+    y[write_idx] = cur_value;
+  }
+
+  return y;
+}
+
+function ApplyFeedForwardFilterBackwards(x, ff_coeffs) {
+  var filter_length = ff_coeffs.length;
+  var x_length = x.length;
+
+  var pad_length = filter_length - 1;
+  var y = new Float32Array(x_length);
+
+  for(var write_idx = 0; write_idx < x_length; write_idx++) {
+    var cur_value = 0;
+    for(var filter_idx = 0; filter_idx < filter_length; filter_idx++) {
+      var read_idx = write_idx + filter_idx;
+      if(read_idx >= x_length) {
+        break;
+      }
+      var cur_x = 0;
+      if(read_idx < x_length) {
+        cur_x = x[read_idx];
+      }
+      cur_value = cur_value + (cur_x * ff_coeffs[filter_idx]);
+    }
+    y[write_idx] = cur_value;
+  }
+
+  return y;
+}
+
 /*
  * SignalScale()
  *
@@ -71,7 +162,7 @@ function ExponentialSmoothingForwardBack(x, alpha) {
  *   y (float array): The scaled signal.
  */
 function SignalScale(x, alpha) {
-  y = [];
+  y = new Float32Array(x.length);
   for(var idx = 0; idx < x.length; idx++) {
     y[idx] = x[idx] * alpha;
   }
@@ -95,7 +186,7 @@ function SignalScale(x, alpha) {
 function SignalAdd(x, y) {
   len = y.length < x.length ? y.length : x.length;
 
-  z = [];
+  z = new Float32Array(len);
   for(var idx = 0; idx < len; idx++) {
     z[idx] = x[idx] + y[idx];
   }
@@ -119,7 +210,7 @@ function SignalAdd(x, y) {
 function SignalSubtract(x, y) {
   len = y.length < x.length ? y.length : x.length;
 
-  z = [];
+  z = new Float32Array(len);
   for(var idx = 0; idx < len; idx++) {
     z[idx] = x[idx] - y[idx];
   }
