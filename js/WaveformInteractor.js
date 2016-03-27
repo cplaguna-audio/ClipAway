@@ -254,6 +254,7 @@ function WaveformInteractor() {
   };
 
   this.PlayPausePressed = function() {
+    console.log('play pause pressed.')
     this.is_playing = !this.is_playing;
     if(this.is_playing) {
       play_image_el = document.getElementById("play_pause_button");
@@ -312,6 +313,7 @@ function WaveformInteractor() {
     this.original_wavesurfer.seekTo(0);
     this.processed_wavesurfer.seekTo(0);
     this.TurnOnOriginal();
+    this.DisableInteraction();
   }
 
   this.RemoveRegions = function() {

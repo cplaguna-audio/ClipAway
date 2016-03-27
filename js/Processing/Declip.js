@@ -220,6 +220,9 @@ function DeclipLongBurstsHighBandInPlace(high_band, clip_intervals, known_points
   // For each interval of unreliable blocks, create replacement blocks.
   for(var segment_idx = 0; segment_idx < num_clip_segments - 1; segment_idx++) {
 
+    var cur_progress = segment_idx / num_clip_segments;
+    postMessage([cur_progress, channel_idx]);
+
     var cur_clip_segment = clip_segments[segment_idx];    
     
     // Time domain.
@@ -264,7 +267,6 @@ function ReplaceClipSegment(x, clip_segment, known_points, block_size, hop_size,
   var clipped_phase = new Float32Array(block_size);
   var estimate_mags = new Float32Array(block_size);
   for(var block_idx = start_block_idx; block_idx <= stop_block_idx; block_idx++) {
-    console.log('block idx: ' + block_idx.toString());
     var block_start_sample_idx = BlockIdxToSampleIdx(block_idx, hop_size);
     var block_stop_sample_idx = block_start_sample_idx + block_size - 1;
     CopyToBlock(x, x_length, block_start_sample_idx, block_stop_sample_idx, cur_block, block_size);

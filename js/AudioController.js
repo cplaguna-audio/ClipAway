@@ -52,6 +52,10 @@ function ProcessAudio() {
   }
 }
 
+function DoDeclip() {
+  DoDeclipShortBursts();
+}
+
 function DoDeclipShortBursts() {
   console.time('DeclipShort');
   var num_channels = INPUT_AUDIO_BUFFER.numberOfChannels;
@@ -86,6 +90,7 @@ function DoDeclipShortBursts() {
 
             STATE.did_declip_short_bursts = true;
             RefreshIndex();
+            DoGetKnownPoints();
           }
         }
         else {
@@ -140,6 +145,7 @@ function DoGetKnownPoints() {
 
             STATE.did_get_known_points = true;
             RefreshIndex();
+            DoDeclipLongBursts();
           }
         }
         else {
@@ -306,36 +312,32 @@ function RefreshIndex() {
 
   // 1. Check to allow wavesurfer interaction.
   if(ShouldAllowWaveformInteraction()) {
+    console.log('allowing waveform interaction.');
     WAVEFORM_INTERACTOR.EnableInteraction();
 
     var toggle_waveform_button = document.getElementById("toggle_waveform_button");
-    toggle_waveform_button.addEventListener('click', function(e) {
-      WAVEFORM_INTERACTOR.ToggleActiveWaveSurfer();
-    });
+    toggle_waveform_button.removeEventListener('click', ToggleWaveformHandler);
+    toggle_waveform_button.addEventListener('click', ToggleWaveformHandler);
     toggle_waveform_button.style.opacity = "1";
 
     var play_pause_button = document.getElementById("play_pause_button");
-    play_pause_button.addEventListener('click', function(e) {
-      WAVEFORM_INTERACTOR.PlayPausePressed()
-    });
+    play_pause_button.removeEventListener('click', PlayPauseHandler);
+    play_pause_button.addEventListener('click', PlayPauseHandler);
     play_pause_button.style.opacity = "1";
 
     var play_selection_button = document.getElementById("play_selection_button");
-    play_selection_button.addEventListener('click', function(e) {
-      WAVEFORM_INTERACTOR.PlayRegion();
-    });
+    play_selection_button.removeEventListener('click', PlaySelectionHandler);
+    play_selection_button.addEventListener('click', PlaySelectionHandler);
     play_selection_button.style.opacity = "1";
 
     var zoom_in_button = document.getElementById("zoom_in_button");
-    zoom_in_button.addEventListener('click', function(e) {
-      WAVEFORM_INTERACTOR.ZoomIn();
-    });
+    zoom_in_button.removeEventListener('click', ZoomInHandler);
+    zoom_in_button.addEventListener('click', ZoomInHandler);
     zoom_in_button.style.opacity = "1";
 
     var zoom_out_button = document.getElementById("zoom_out_button");
-    zoom_out_button.addEventListener('click', function(e) {
-      WAVEFORM_INTERACTOR.ZoomOut();
-    });
+    zoom_out_button.removeEventListener('click', ZoomOutHandler);
+    zoom_out_button.addEventListener('click', ZoomOutHandler);
     zoom_out_button.style.opacity = "1";
 
     WAVEFORM_INTERACTOR.original_audio_element.addEventListener('click', function() {
@@ -351,6 +353,7 @@ function RefreshIndex() {
     })
   }
   else {
+    console.log('not allowing waveform interaction.');
     WAVEFORM_INTERACTOR.DisableInteraction();
 
     var toggle_waveform_button = document.getElementById("toggle_waveform_button");
@@ -364,11 +367,11 @@ function RefreshIndex() {
 
     buttons = document.getElementsByClassName("zoom_image");
     for(var i = 0; i < buttons.length; i++) {
-      buttons[i].removeEventListener('click', function() {});
       buttons[i].style.opacity = "0.2";
     } 
   }
 
+/*
   if(ShouldEnableDetectClipping()) {
     var detect_clipping_button = document.getElementById("detect_clipping_button");
     detect_clipping_button.disabled = false;
@@ -412,6 +415,7 @@ function RefreshIndex() {
     declip_long_bursts_button.disabled = true;
     declip_long_bursts_button.style.opacity = "0.2";
   }
+  */
 
 
   // 4. Check remove long bursts button.
@@ -453,4 +457,25 @@ function ShouldEnableGetKnownPoints() {
 
 function ShouldEnableDeclipLongBursts() {
   return STATE.audio_loaded && STATE.did_clipping_detection && STATE.did_declip_short_bursts && STATE.did_get_known_points;
+}
+
+// Button handlers.
+function ToggleWaveformHandler(event) {
+  WAVEFORM_INTERACTOR.ToggleActiveWaveSurfer();
+}
+
+function PlayPauseHandler(event) {
+  WAVEFORM_INTERACTOR.PlayPausePressed();
+}
+
+function PlaySelectionHandler(event) {
+  WAVEFORM_INTERACTOR.PlayRegion();
+}
+
+function ZoomInHandler(event) {
+  WAVEFORM_INTERACTOR.ZoomIn();
+}
+
+function ZoomOutHandler(event) {
+  WAVEFORM_INTERACTOR.ZoomOut();
 }

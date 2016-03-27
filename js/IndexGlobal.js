@@ -9,7 +9,7 @@
 $(document).ready(InitIndex);
 
 // Global Variables for main.html.
-var RUN_TESTS = true;
+var RUN_TESTS = false;
 
 var BLOCK_SIZE = 512;
 var HOP_SIZE = 128;
@@ -70,12 +70,13 @@ function InitIndex() {
       AUDIO_CONTEXT.decodeAudioData(ev.target.result, function(buffer) {
         INPUT_AUDIO_BUFFER = buffer;
         PROCESSED_AUDIO_BUFFER = CopyAudioBuffer(AUDIO_CONTEXT, INPUT_AUDIO_BUFFER);
+        STATE.audio_loaded = true;
+        DoDetectClipping();
       });
     };
     reader.readAsArrayBuffer(this.files[0]);
 
     WAVEFORM_INTERACTOR.LoadAudio(this.files[0]);
-    STATE.audio_loaded = true;
     RefreshIndex();
   }, false);
 
