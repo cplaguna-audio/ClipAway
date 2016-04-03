@@ -7,11 +7,17 @@
  *****************************************************************************/
 
 // Prototype for a WaveformInteractor object.
-function WaveformInteractor() {
+function WaveformInteractor(content_width_px) {
+  this.VERBOSE = false;
+
   // Instance Variables.
-  this.ORIGINAL_ZOOM_SCALE = 60;
-  this.zoom_scale = this.ORIGINAL_ZOOM_SCALE;
+  this.CONTENT_WIDTH_PIXELS = content_width_px;
+  this.MAX_ZOOM_IN_SEC_PER_PAGE = 2;
   this.DELTA = 0;
+
+  this.ZOOM_MULTIPLIER = 1.3;
+
+  this.current_zoom = 1;  // 1 = full_screen, 2 = 2 * full_screen, etc.
 
   this.original_wavesurfer;
   this.original_audio_element;
@@ -26,6 +32,7 @@ function WaveformInteractor() {
 
   this.disabled = false;
   this.is_playing_original = false;
+  this.is_playing_region = false;
 
   /*
    * Constructors
@@ -41,8 +48,22 @@ function WaveformInteractor() {
         container: this.original_audio_element,
         waveColor: 'blue',
         progressColor: 'blue',
-        minPxPerSec: this.ORIGINAL_ZOOM_SCALE,
         scrollParent: true
+    });
+    this.original_wavesurfer.on('ready', function() {
+      if(me.VERBOSE) {
+        console.log('og ready');
+      }
+
+      var timeline = Object.create(WaveSurfer.Timeline);
+
+      timeline.init({
+        wavesurfer: me.original_wavesurfer,
+        container: me.original_audio_element
+      });
+
+      var zoomed_out_scale = me.CONTENT_WIDTH_PIXELS / me.original_wavesurfer.getDuration();
+      me.original_wavesurfer.zoom(zoomed_out_scale);
     });
 
     this.processed_wavesurfer = Object.create(WaveSurfer);
@@ -50,8 +71,22 @@ function WaveformInteractor() {
         container: this.processed_audio_element,
         waveColor: 'blue',
         progressColor: 'blue',
-        minPxPerSec: this.ORIGINAL_ZOOM_SCALE,
         scrollParent: true
+    });
+    this.processed_wavesurfer.on('ready', function() {
+      if(me.VERBOSE) {
+        console.log('proc ready');
+      }
+
+      var timeline = Object.create(WaveSurfer.Timeline);
+
+      timeline.init({
+        wavesurfer: me.processed_wavesurfer,
+        container: me.processed_audio_element
+      });
+
+      var zoomed_out_scale = me.CONTENT_WIDTH_PIXELS / me.processed_wavesurfer.getDuration();
+      me.processed_wavesurfer.zoom(zoomed_out_scale);
     });
 
     // Add event handlers.
@@ -61,6 +96,10 @@ function WaveformInteractor() {
     this.AddRegionHandlers();
 
     this.original_wavesurfer.on('scroll', function (e) {
+      if(me.VERBOSE) {
+        console.log('og scroll');
+      }
+
       my_scroll_left = me.original_wavesurfer.drawer.wrapper.scrollLeft;
       their_scroll_left = me.processed_wavesurfer.drawer.wrapper.scrollLeft;
       if(my_scroll_left !== their_scroll_left) {
@@ -69,6 +108,10 @@ function WaveformInteractor() {
     });
 
     this.processed_wavesurfer.on('scroll', function (e) {
+      if(me.VERBOSE) {
+        console.log('proc scroll');
+      }
+
       their_scroll_left = me.original_wavesurfer.drawer.wrapper.scrollLeft;
       my_scroll_left = me.processed_wavesurfer.drawer.wrapper.scrollLeft;
       if(my_scroll_left !== their_scroll_left) {
@@ -77,15 +120,19 @@ function WaveformInteractor() {
     });
 
     this.original_wavesurfer.on('finish', function(e) {
-      me.is_playing = false;
-      play_image_el = document.getElementById("play_pause_button");
-      play_image_el.src = "resources/transport/play.png";
+      if(me.VERBOSE) {
+        console.log('og finish');
+      }
+
+      me.Pause();
     });
 
     this.processed_wavesurfer.on('finish', function(e) {
-      me.is_playing = false;
-      play_image_el = document.getElementById("play_pause_button");
-      play_image_el.src = "resources/transport/play.png";
+      if(me.VERBOSE) {
+        console.log('proc finish');
+      }
+
+      me.Pause();
     });
 
     // On load, mute the processed audio.
@@ -109,7 +156,11 @@ function WaveformInteractor() {
   this.AddRegionHandlers = function() {
     me = this;
     this.original_wavesurfer.on('region-created', function(the_region) {
+      if(me.VERBOSE) {
+        console.log('og region-created');
+      }
 
+      me.Pause();
       // First, remove old region.
       if(me.original_region !== null) {
         me.original_region.remove();
@@ -127,6 +178,11 @@ function WaveformInteractor() {
     });
 
     this.original_wavesurfer.on('region-updated', function(the_region) {
+      if(me.VERBOSE) {
+        console.log('og region-updated');
+      }
+
+      me.Pause();
       if(the_region.start !== me.processed_region.start || the_region.end !== me.processed_region.end) {
         me.processed_region.update({
           start: the_region.start,
@@ -135,8 +191,47 @@ function WaveformInteractor() {
       }
     });
 
-    this.processed_wavesurfer.on('region-created', function(the_region) {
+    this.processed_wavesurfer.on('region-out', function() {
+      if(me.VERBOSE) {
+        console.log('og region-out');
+      }
+      if(me.is_playing_region) {
+        me.is_playing_region = false;
+        me.Pause();
+      }
+    });
 
+    this.original_wavesurfer.on('pause', function(the_region) {
+      if(me.VERBOSE) {
+        console.log('og pause');
+      }
+
+      if(me.is_playing) {
+        me.is_playing = false;
+        play_image_el = document.getElementById("play_pause_button");
+        play_image_el.src = "resources/transport/play.png";
+      }
+    });    
+
+    this.original_wavesurfer.on('play', function(the_region) {
+      if(me.VERBOSE) {
+        console.log('og play');
+      }
+
+      if(!me.is_playing) {
+        me.is_playing = true;
+        play_image_el = document.getElementById("play_pause_button");
+        play_image_el.src = "resources/transport/pause.png";
+      }
+    });   
+
+    this.processed_wavesurfer.on('region-created', function(the_region) {
+      if(me.VERBOSE) {
+        console.log('proc region-created');
+        console.log('start: ' + the_region.start.toString() + ', stop: ' + the_region.end.toString());
+      }
+
+      me.Pause();
       // First, remove old region.
       if(me.processed_region !== null) {
         me.processed_region.remove();
@@ -154,6 +249,11 @@ function WaveformInteractor() {
     });
 
     this.processed_wavesurfer.on('region-updated', function(the_region) {
+      if(me.VERBOSE) {
+        console.log('proc region-updated');
+      }
+
+      me.Pause();
       if(the_region.start !== me.original_wavesurfer.start || the_region.end !== me.original_wavesurfer.end) {
         me.original_region.update({
           start: the_region.start,
@@ -162,29 +262,88 @@ function WaveformInteractor() {
       }
     });
 
+    this.processed_wavesurfer.on('region-out', function() {
+      if(me.VERBOSE) {
+        console.log('proc region-out');
+      }
+      if(me.is_playing_region) {
+        me.is_playing_region = false;
+        me.Pause();
+      }
+    });
+
+    this.processed_wavesurfer.on('pause', function(the_region) {
+      if(me.VERBOSE) {
+        console.log('proc pause');
+      }
+
+      if(me.is_playing) {
+        me.is_playing = false;
+        play_image_el = document.getElementById("play_pause_button");
+        play_image_el.src = "resources/transport/play.png";
+      }
+    });    
+
+    this.processed_wavesurfer.on('play', function(the_region) {
+      if(me.VERBOSE) {
+        console.log('proc play');
+      }
+
+      if(!me.is_playing) {
+        me.is_playing = true;
+        play_image_el = document.getElementById("play_pause_button");
+        play_image_el.src = "resources/transport/pause.png";
+      }
+    });    
+
   };
 
   // The seek handlers maintain consistent seek positions between the two
   // wavesurfers.
   this.AddSeekHandlers = function() {
     me = this;
-    this.original_wavesurfer.on('seek', function() {
+    this.original_wavesurfer.on('seek', function(the_progress) {
+      if(me.VERBOSE) {
+        console.log('og seek');
+      }
+
       cur_progress = me.original_wavesurfer.getCurrentTime() / me.original_wavesurfer.getDuration();
       other_progress = me.processed_wavesurfer.getCurrentTime() / me.processed_wavesurfer.getDuration();
 
       if(Math.abs(cur_progress - other_progress) > me.DELTA) {
         me.processed_wavesurfer.seekTo(cur_progress);
       }
+      
+      if(me.original_region) {
+        var region_start_percentage = me.original_region.start / me.original_wavesurfer.getDuration() - me.DELTA;
+        var region_end_percentage = me.original_region.end / me.original_wavesurfer.getDuration() + me.DELTA;
+        if(the_progress < region_start_percentage || the_progress > region_end_percentage) {
+          me.RemoveRegions();
+        }
+     }
+      
 
     });
 
-    this.processed_wavesurfer.on('seek', function() {
+    this.processed_wavesurfer.on('seek', function(the_progress) {
+      if(me.VERBOSE) {
+        console.log('proc seek');
+      }
+
       cur_progress = me.processed_wavesurfer.getCurrentTime() / me.processed_wavesurfer.getDuration();
       other_progress = me.original_wavesurfer.getCurrentTime() / me.original_wavesurfer.getDuration();
 
       if(Math.abs(cur_progress - other_progress) > me.DELTA) {
         me.original_wavesurfer.seekTo(cur_progress);
       }
+      if(me.processed_region) {
+        var region_start_percentage = me.processed_region.start / me.processed_wavesurfer.getDuration() - me.DELTA;
+        var region_end_percentage = me.processed_region.end / me.processed_wavesurfer.getDuration() + me.DELTA;
+        if(the_progress < region_start_percentage || the_progress > region_end_percentage) {
+          me.RemoveRegions();
+        }
+     }
+
 
     });
 
@@ -201,18 +360,22 @@ function WaveformInteractor() {
     this.EnableInteraction();
   };
 
-  this.UpdateProcessedAudio = function(processed_audio_buffer) {
+  this.UpdateProcessedAudio = function(processed_audio_buffer, callback) {
+    console.log("UpdateProcessedAudio()");
+    this.Flush();
     this.processed_wavesurfer.loadDecodedBuffer(processed_audio_buffer);
     this.processed_wavesurfer.empty();
     this.processed_wavesurfer.drawBuffer();
 
     // Seek the processed wavesurfer to the current position.
-    cur_progress = me.original_wavesurfer.getCurrentTime() / me.original_wavesurfer.getDuration();
+    cur_progress = this.original_wavesurfer.getCurrentTime() / this.original_wavesurfer.getDuration();
     this.processed_wavesurfer.seekTo(cur_progress);
+    callback();
   }
 
   this.PlayRegion = function() {
     if(this.original_region !== null && this.processed_region !== null) {
+      this.is_playing_region = true;
       this.original_region.play();
       this.processed_region.play();
       this.is_playing = true;
@@ -254,34 +417,60 @@ function WaveformInteractor() {
   };
 
   this.PlayPausePressed = function() {
-    console.log('play pause pressed.')
-    this.is_playing = !this.is_playing;
     if(this.is_playing) {
-      play_image_el = document.getElementById("play_pause_button");
-      play_image_el.src = "resources/transport/pause.png";
+      this.Pause();
     }
     else {
+      this.Play();
+    }
+  }
+
+  this.Play = function() {
+    this.is_playing_region = false;
+    if(!this.is_playing) {
+      this.is_playing = true;
+      play_image_el = document.getElementById("play_pause_button");
+      play_image_el.src = "resources/transport/pause.png";
+      this.original_wavesurfer.play();
+      this.processed_wavesurfer.play();
+    }
+  }
+
+  this.Pause = function() {
+    this.is_playing_region = false;
+    if(this.is_playing) {
+      this.is_playing = false;
       play_image_el = document.getElementById("play_pause_button");
       play_image_el.src = "resources/transport/play.png";
+      this.original_wavesurfer.pause();
+      this.processed_wavesurfer.pause();
     }
-    this.original_wavesurfer.playPause();
-    this.processed_wavesurfer.playPause();
+  }
+
+  this.Zoom = function(px_per_second) {
+    this.original_wavesurfer.zoom(px_per_second);
+    this.processed_wavesurfer.zoom(px_per_second);
   }
 
   this.ZoomIn = function() {
-    if(this.zoom_scale < 500) {
-      this.zoom_scale = this.zoom_scale * 1.2;
-      this.original_wavesurfer.zoom(this.zoom_scale);
-      this.processed_wavesurfer.zoom(this.zoom_scale);
+    var proposed_new_scale = this.current_zoom * this.ZOOM_MULTIPLIER;
+    var px_per_second = proposed_new_scale * (this.CONTENT_WIDTH_PIXELS / this.original_wavesurfer.getDuration());
+    var seconds_per_width = this.CONTENT_WIDTH_PIXELS / px_per_second;
+    if(seconds_per_width >= this.MAX_ZOOM_IN_SEC_PER_PAGE) {
+      this.current_zoom = proposed_new_scale;
+      this.Zoom(px_per_second);
     }
   };
 
   this.ZoomOut = function() {
-    if(this.zoom_scale > 20) {
-      this.zoom_scale = this.zoom_scale / 1.2;
-      this.original_wavesurfer.zoom(this.zoom_scale);
-      this.processed_wavesurfer.zoom(this.zoom_scale);
+    var proposed_new_scale = this.current_zoom / this.ZOOM_MULTIPLIER;
+    if(proposed_new_scale < 1) {
+      proposed_new_scale = 1;
     }
+    
+    this.current_zoom = proposed_new_scale;
+    var px_per_second = proposed_new_scale * (this.CONTENT_WIDTH_PIXELS / this.original_wavesurfer.getDuration());
+    this.Zoom(px_per_second);
   };
 
   this.ToggleActiveWaveSurfer = function() {
@@ -309,6 +498,8 @@ function WaveformInteractor() {
   }
 
   this.Flush = function() {
+    this.current_zoom = 1;
+    this.Pause();
     this.RemoveRegions();
     this.original_wavesurfer.seekTo(0);
     this.processed_wavesurfer.seekTo(0);

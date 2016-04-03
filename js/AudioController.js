@@ -31,7 +31,7 @@ function ProcessAudio() {
         if(cur_progress > 1) {
           processed_channel = e.data[2];
           PROCESSED_AUDIO_BUFFER.copyToChannel(processed_channel, the_channel_idx);
-          WAVEFORM_INTERACTOR.UpdateProcessedAudio(PROCESSED_AUDIO_BUFFER);
+          WAVEFORM_INTERACTOR.UpdateProcessedAudio(PROCESSED_AUDIO_BUFFER, function() {});
           min_progress = MyMin(progress);
           if(min_progress > 1) {
             console.timeEnd('Gain');
@@ -61,7 +61,11 @@ function DoDeclipShortBursts() {
   var num_channels = INPUT_AUDIO_BUFFER.numberOfChannels;
 
   // Start up the progress bar pop-up.
+  var progress_title_element = document.getElementById('progress_title');
+  progress_title_element.innerHTML = "Processing Audio";
   PROGRESS_BAR_JQUERRY_ELEMENT.w2popup({showClose: false, modal:true});
+  var progress_title_element = document.getElementById('progress_title');
+  progress_title_element.innerHTML = "1/3: Declipping Short Bursts";
 
   UpdateProgressBar(0);
 
@@ -82,16 +86,23 @@ function DoDeclipShortBursts() {
         if(cur_progress > 1) {
           processed_channel = e.data[2];
           PROCESSED_AUDIO_BUFFER.copyToChannel(processed_channel, the_channel_idx);
-          WAVEFORM_INTERACTOR.UpdateProcessedAudio(PROCESSED_AUDIO_BUFFER);
+          
+          var the_callback = function() {};
           min_progress = MyMin(progress);
-          if(min_progress > 1) {
-            console.timeEnd('DeclipShort');
-            w2popup.close();
+          console.timeEnd('DeclipShort');
 
-            STATE.did_declip_short_bursts = true;
-            RefreshIndex();
-            DoGetKnownPoints();
+          if(min_progress > 1) {
+            the_callback = function() {
+              console.log('callback: short declipping');
+              // w2popup.close();
+
+              STATE.did_declip_short_bursts = true;
+              RefreshIndex();
+              DoGetKnownPoints();
+            }
           }
+          WAVEFORM_INTERACTOR.UpdateProcessedAudio(PROCESSED_AUDIO_BUFFER, the_callback);
+
         }
         else {
           avg_progress = MyAverage(progress);
@@ -116,7 +127,8 @@ function DoGetKnownPoints() {
   }
 
   // Start up the progress bar pop-up.
-  PROGRESS_BAR_JQUERRY_ELEMENT.w2popup({showClose: false, modal:true});
+  var progress_title_element = document.getElementById('progress_title');
+  progress_title_element.innerHTML = "2/3: Finding Reliable FFT Magnitudes";
 
   UpdateProgressBar(0);
 
@@ -141,7 +153,7 @@ function DoGetKnownPoints() {
           min_progress = MyMin(progress);
           if(min_progress > 1) {
             console.timeEnd('GetKnownPoints');
-            w2popup.close();
+            // w2popup.close();
 
             STATE.did_get_known_points = true;
             RefreshIndex();
@@ -168,7 +180,8 @@ function DoDeclipLongBursts() {
   var num_channels = INPUT_AUDIO_BUFFER.numberOfChannels;
 
   // Start up the progress bar pop-up.
-  PROGRESS_BAR_JQUERRY_ELEMENT.w2popup({showClose: false, modal:true});
+  var progress_title_element = document.getElementById('progress_title');
+  progress_title_element.innerHTML = "3/3: Declipping Long Bursts";
   UpdateProgressBar(0);
 
   // Start the audio processing on a separate thread.
@@ -188,15 +201,21 @@ function DoDeclipLongBursts() {
         if(cur_progress > 1) {
           processed_channel = e.data[2];
           PROCESSED_AUDIO_BUFFER.copyToChannel(processed_channel, the_channel_idx);
-          WAVEFORM_INTERACTOR.UpdateProcessedAudio(PROCESSED_AUDIO_BUFFER);
           min_progress = MyMin(progress);
+
+          var the_callback = function() {};
           if(min_progress > 1) {
             console.timeEnd('DeclipLongBursts');
-            w2popup.close();
+            the_callback = function() {
+              console.log('callback: long declipping.');
+              w2popup.close();
 
-            STATE.did_declip_long_bursts = true;
-            RefreshIndex();
+              STATE.did_declip_long_bursts = true;
+              RefreshIndex();
+              };
           }
+          WAVEFORM_INTERACTOR.UpdateProcessedAudio(PROCESSED_AUDIO_BUFFER, the_callback);
+
         }
         else {
           avg_progress = MyAverage(progress);
@@ -226,6 +245,8 @@ function DoDetectClipping() {
 
     // Start up the progress bar pop-up.
     PROGRESS_BAR_JQUERRY_ELEMENT.w2popup({showClose: false, modal:true});
+    var progress_title_element = document.getElementById('progress_title');
+    progress_title_element.innerHTML = "Detecting Clipping";
 
     UpdateProgressBar(0);
 
@@ -285,11 +306,13 @@ function UpdateProgressBar(progress) {
 function DownloadInputAudio() {
   var wav_blob = AudioBufferToWavBlob(INPUT_AUDIO_BUFFER); 
 
+  var output_file_name = FILE_NAME.substring(0, FILE_NAME.lastIndexOf('.'));
+
   // Click the link programmatically.
   var download_element = document.getElementById("download_processed_audio");
   var url = window.URL.createObjectURL(wav_blob);
   download_element.href = url;
-  download_element.download = "ClipAway-Unprocessed-" + FILE_NAME + '.wav';
+  download_element.download = "ClipAway-Unprocessed-" + output_file_name + '.wav';
   download_element.click();
   window.URL.revokeObjectURL(url);
 }
@@ -309,10 +332,11 @@ function DownloadProcessedAudio() {
 // Decide which buttons should be enable/disabled depending on the current
 // state.
 function RefreshIndex() {
+  var file_name_element = document.getElementById("file_name");
+  file_name_element.innerHTML = FILE_NAME;
 
   // 1. Check to allow wavesurfer interaction.
   if(ShouldAllowWaveformInteraction()) {
-    console.log('allowing waveform interaction.');
     WAVEFORM_INTERACTOR.EnableInteraction();
 
     var toggle_waveform_button = document.getElementById("toggle_waveform_button");
@@ -340,6 +364,12 @@ function RefreshIndex() {
     zoom_out_button.addEventListener('click', ZoomOutHandler);
     zoom_out_button.style.opacity = "1";
 
+    var processing_buttons = document.getElementsByClassName("processing_button");
+    for(var i = 0; i < processing_buttons.length; i++) {
+      processing_buttons[i].style.opacity = "1";
+      processing_buttons[i].disabled = false;
+    } 
+
     WAVEFORM_INTERACTOR.original_audio_element.addEventListener('click', function() {
       if(!WAVEFORM_INTERACTOR.original_on) {
         WAVEFORM_INTERACTOR.TurnOnOriginal();
@@ -353,7 +383,6 @@ function RefreshIndex() {
     })
   }
   else {
-    console.log('not allowing waveform interaction.');
     WAVEFORM_INTERACTOR.DisableInteraction();
 
     var toggle_waveform_button = document.getElementById("toggle_waveform_button");
@@ -365,10 +394,20 @@ function RefreshIndex() {
     var play_selection_button = document.getElementById("play_selection_button");
     play_selection_button.style.opacity = "0.2";
 
-    buttons = document.getElementsByClassName("zoom_image");
-    for(var i = 0; i < buttons.length; i++) {
-      buttons[i].style.opacity = "0.2";
+    var zoom_in_button = document.getElementById("zoom_in_button");
+    zoom_in_button.removeEventListener('click', ZoomInHandler);
+    zoom_in_button.style.opacity = "0.2";
+
+    var zoom_out_button = document.getElementById("zoom_out_button");
+    zoom_out_button.removeEventListener('click', ZoomOutHandler);
+    zoom_out_button.style.opacity = "0.2";
+
+    var processing_buttons = document.getElementsByClassName("processing_button");
+    for(var i = 0; i < processing_buttons.length; i++) {
+      processing_buttons[i].style.opacity = "0.2";
+      processing_buttons[i].disabled = true;
     } 
+
   }
 
 /*

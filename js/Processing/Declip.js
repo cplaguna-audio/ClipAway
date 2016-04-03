@@ -24,6 +24,9 @@ function DeclipShortBurstsInPlace(channel, clip_intervals, channel_idx, params) 
 
   // Do a separate interpolation for each clip interval.
   for(var interval_idx = 0; interval_idx < clip_intervals.length; interval_idx++) {
+    var cur_progress = interval_idx / clip_intervals.length;
+    postMessage([cur_progress, channel_idx]);
+
     var cur_interval = clip_intervals[interval_idx];
     var burst_start = cur_interval.start;
     var burst_stop = cur_interval.stop;
@@ -475,6 +478,9 @@ function GetAllKnownPoints(x, clip_intervals, channel_idx, params) {
   var known_points = [];
   var num_known_points = 0;
   for(var segment_idx = 0; segment_idx < num_clip_segments; segment_idx++) {
+    var cur_progress = segment_idx / num_clip_segments;
+    postMessage([cur_progress, channel_idx]);
+
     var cur_segment = clip_segments[segment_idx];
 
     var segment_start_block_idx = cur_segment.start;

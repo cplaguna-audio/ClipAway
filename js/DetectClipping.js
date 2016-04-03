@@ -49,7 +49,9 @@
  *                        'stop' -> The stop index of the interval.
  * 
  */
-function DetectClipping(x, params) {
+function DetectClipping(x, channel_idx, params) {
+  var cur_progress = 0;
+
   var NUM_BINS = 6000;
   var MIN_WIDTH = 18;
   var SEARCH_WIDTH_BINS = 600;
@@ -59,12 +61,18 @@ function DetectClipping(x, params) {
   var amp_hist = hist_arr[0];
   var edges = hist_arr[1];
 
+  var cur_progress = 0.4;
+  postMessage([cur_progress, channel_idx]);
+
   amp_hist = ExponentialSmoothingForwardBack(amp_hist, 0.2);
 
   var smooth_amp_hist = ExponentialSmoothingForwardBack(amp_hist, 0.025);
 
   // Compute the novelty function.
   var novelty = SignalSubtract(amp_hist, smooth_amp_hist);
+
+  var cur_progress = 0.5;
+  postMessage([cur_progress, channel_idx]);
 
   // Find the clipping levels and widths of the bumps from the novelty. Do this
   // for positive and negative clipping separately.
@@ -162,6 +170,9 @@ function DetectClipping(x, params) {
     positive_width = (positive_upper - positive_thresh) / 2;
   }
 
+  var cur_progress = 0.6;
+  postMessage([cur_progress, channel_idx]);
+
   // Now to find the clipping intervals based on the clipping levels.
   var negative_clip_intervals = [];
   if(has_negative_clip) {
@@ -170,11 +181,17 @@ function DetectClipping(x, params) {
     negative_clip_intervals = GetClipIntervals(x, valleys, negative_width);
   }
 
+  var cur_progress = 0.75;
+  postMessage([cur_progress, channel_idx]);
+
   var positive_clip_intervals = [];
   if(has_positive_clip) {
     var peaks = FindPeaks(x, positive_thresh, true);
     var positive_clip_intervals = GetClipIntervals(x, peaks, positive_width);
   }
+
+  var cur_progress = 0.9;
+  postMessage([cur_progress, channel_idx]);
 
   // Aggregate the positive and negative clipping intervals.
   var clip_intervals = [];

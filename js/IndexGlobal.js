@@ -43,12 +43,70 @@ var PROCESSED_AUDIO_BUFFER;
 var PROGRESS_BAR_JQUERRY_ELEMENT;
 var PROGRESS_BAR_ELEMENT;
 
+var CONTENT_WIDTH_PERCENTAGE = 0.95;
+var CONTENT_WIDTH_PIXELS;
+
 // Called after the <body> has been loaded.
 function InitIndex() {  
+
+  // Drag and drop.
+  var toggleActive = function (e, toggle) {
+      e.stopPropagation();
+      e.preventDefault();
+      toggle ? e.target.classList.add('wavesurfer-dragover') :
+          e.target.classList.remove('wavesurfer-dragover');
+  };
+
+  var handlers = {
+      drop: function (e) {
+          toggleActive(e, false);
+
+          if(e.dataTransfer.files.length) {
+
+            FILE_NAME = e.dataTransfer.files[0].name;
+
+            var reader = new FileReader();
+            reader.onload = function(ev) {
+              AUDIO_CONTEXT.decodeAudioData(ev.target.result, function(buffer) {
+                INPUT_AUDIO_BUFFER = buffer;
+                PROCESSED_AUDIO_BUFFER = CopyAudioBuffer(AUDIO_CONTEXT, INPUT_AUDIO_BUFFER);
+                STATE.audio_loaded = true;
+                DoDetectClipping();
+              });
+            };
+            reader.readAsArrayBuffer(e.dataTransfer.files[0]);
+            WAVEFORM_INTERACTOR.LoadAudio(e.dataTransfer.files[0]);
+            RefreshIndex();
+          } 
+          else {
+              console.log('Tried to drag and drop a bad file.');
+          }
+      },
+
+      dragover: function(e) {
+          toggleActive(e, true);
+      },
+
+      dragleave: function(e) {
+          toggleActive(e, false);
+      }
+  };
+
+  var dropTarget = document.querySelector('#waveform_view');
+  Object.keys(handlers).forEach(function (event) {
+      dropTarget.addEventListener(event, handlers[event]);
+  });
+
+  var screen_width_pixels = window.screen.width;
+  var CONTENT_WIDTH_PIXELS = screen_width_pixels * CONTENT_WIDTH_PERCENTAGE;
+  var content_element = document.getElementById('my_content');
+  content_element.style.width = CONTENT_WIDTH_PIXELS.toString() + "px";
 
   // Audio buffer source.
   PROGRESS_BAR_JQUERRY_ELEMENT = $('#audio_processing_progress_popup');
   PROGRESS_BAR_ELEMENT = document.getElementById('audio_processing_progress_popup');
+
+  /*
   var file_input = document.getElementById("audio_file_chooser");
   file_input.addEventListener("change", function() {
     FlushIndex();
@@ -74,13 +132,19 @@ function InitIndex() {
         DoDetectClipping();
       });
     };
-    reader.readAsArrayBuffer(this.files[0]);
-
-    WAVEFORM_INTERACTOR.LoadAudio(this.files[0]);
-    RefreshIndex();
+    if(this.files[0]) {
+      reader.readAsArrayBuffer(this.files[0]);
+      WAVEFORM_INTERACTOR.LoadAudio(this.files[0]);
+      RefreshIndex();
+    }
   }, false);
+*/
 
-  WAVEFORM_INTERACTOR = new WaveformInteractor();
+  var waveform_view_element = document.getElementById('waveform_view');
+  var padding = window.getComputedStyle(waveform_view_element, null).getPropertyValue('padding');
+  padding = padding.substring(0, padding.length - 2);
+  var waveform_view_width_px = CONTENT_WIDTH_PIXELS - (2 * Number(padding)) - 10;
+  WAVEFORM_INTERACTOR = new WaveformInteractor(waveform_view_width_px);
   WAVEFORM_INTERACTOR.Init("original_audio_waveform", "processed_audio_waveform");
   RefreshIndex();
 

@@ -11,6 +11,7 @@
   <script src="js/third_party/jquery/jquery-1.12.1.min.js"></script>
   <script src="js/third_party/katspaugh-wavesurfer.js-fdd4b7f/wavesurfer.min.js"></script>
   <script src="js/third_party/katspaugh-wavesurfer.js-fdd4b7f/wavesurfer.regions.min.js"></script>
+  <script src="js/third_party/katspaugh-wavesurfer.js-fdd4b7f/wavesurfer.timeline.min.js"></script>
   <script src="js/third_party/nayuki-obj/fft.js"></script>
   <script src="js/third_party/plotly/plotly-latest.min.js"></script>
   <script src="js/third_party/w2ui/w2ui-1.4.3.min.js"></script>
@@ -37,57 +38,57 @@
 
 <body>
   <h1><center><img src="resources/logo_2.png"></img></center></h1>
-  <div id="intro_text">
-    <p>ClipAway allows you to declip audio. Clipping is a recording artifact
-       which occurs when a microphone is recording at a higher sound level. The correct amplitude cannot correctly be represented, and
-       instead the recorded amplitude is reduced to a value very near the maximum
-       allowed value. The effect produced sounds a lot like distortion, although 
-       in this case, it is not pleasant or wanted. One example of a recording 
-       scenario where clipping is likely is when recording live concerts through
-       mobile phones. </p>
-    <p>Click below to chose a file to upload to the website. The file
-       will be declipped, and an improved version will be downloaded to your
-       computer.</p>
-  </div>
+  <div id="my_content" style="margin:auto">
+    <div id="intro_text">
+      <p>ClipAway allows you to reduce clipping in an audio file. Clipping is a 
+         recording artifact which occurs when a microphone senses input at a higher
+         sound level than the microphone's maximum level. The correct amplitude cannot correctly be represented, and
+         instead the amplitude is reduced to the clipping level. Clipping sounds similar to distortion but is 
+         not intentional and likely sounds unpleasant. Clipping occurs commonly
+         in scenarios such as recording live concerts with
+         mobile phones. </p>
+      <p>Drag and drop a file into the workspace below to get started!</p>
+    </div>
 
-  <div class="small_padding"></div>
+    <div class="small_padding"></div>
 
-  <div id="waveform_view">
-    <div id="original_waveform_container">
-      <div width="100%">
-      <input id="audio_file_chooser" class="my_input" type="file" accept="audio/*"> </input>
-      <div class="waveform_title">Input</div>   
-      <div class="small_padding"></div>
-      <div id="original_audio_waveform" class="wavesurfer"></div>
-    </div><div class="small_padding"></div>
+    <div id="waveform_view">
+      <div id="original_waveform_container" >
+        <div width="100%">
+        <div id="file_name"></div>
+        <div class="waveform_title">Input</div>   
+        <div class="small_padding"></div>
+        <div id="original_audio_waveform" class="wavesurfer"></div>
+      </div><div class="small_padding"></div>
 
-    <div id="processed_waveform_container">
-      <div class="waveform_title">Output</div>
-      <div class="small_padding"></div>
-      <div id="processed_audio_waveform" class="wavesurfer"></div>
-    </div><div class="small_padding"></div><div class="small_padding"></div>
+      <div id="processed_waveform_container">
+        <div class="waveform_title">Output</div>
+        <div class="small_padding"></div>
+        <div id="processed_audio_waveform" class="wavesurfer"></div>
+      </div><div class="small_padding"></div><div class="small_padding"></div>
 
-    <div id="transport_container">
-      <div id="transport_zoom_container">
-        <img id="zoom_in_button" class="zoom_image" type="image" src="resources/transport/plus.png"></input>
-        <img id="zoom_out_button" class="zoom_image" type="image" src="resources/transport/minus.png"></input>
-      </div>
+      <div id="transport_container">
+        <div id="transport_zoom_container">
+          <img id="zoom_in_button" class="zoom_image" type="image" src="resources/transport/plus.png"></input>
+          <img id="zoom_out_button" class="zoom_image" type="image" src="resources/transport/minus.png"></input>
+        </div>
 
-      <div id="transport_processing_container">
-        <button id="declip_button" class="processing_button" onclick="DoDeclip();">Declip</button>
-        <button id="download_audio_button" class="processing_button" onclick="DownloadProcessedAudio()">Save Output</div>
-      </div>
+        <div id="transport_processing_container">
+          <button id="declip_button" class="processing_button" onclick="DoDeclip();">Declip</button>
+          <button id="download_audio_button" class="processing_button" onclick="DownloadProcessedAudio()">Save Output</div>
+        </div>
 
-      <div id="transport_buttons_container">
-        <img id="toggle_waveform_button" class="transport_image" type="image" src="resources/transport/toggle_original.png"></input>
-        <img id="play_pause_button" class="transport_image" type="image" src="resources/transport/play.png"></input>
-        <img id="play_selection_button" class="transport_image" type="image" src="resources/transport/play_selection.png"></input>
+        <div id="transport_buttons_container">
+          <img id="toggle_waveform_button" class="transport_image" type="image" src="resources/transport/toggle_original.png"></input>
+          <img id="play_pause_button" class="transport_image" type="image" src="resources/transport/play.png"></input>
+          <img id="play_selection_button" class="transport_image" type="image" src="resources/transport/play_selection.png"></input>
+        </div>
       </div>
     </div>
   </div>
 
   <div id="audio_processing_progress_popup" style="display: none; width: 650px; height: 110px; overflow: auto">
-      <div rel="title">
+      <div id="progress_title" rel="title">
           Processing Audio
       </div>
       <div rel="body">

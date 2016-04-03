@@ -23,6 +23,10 @@ body {
   float:left;
 }
 
+#file_name {
+  float:left;
+}
+
 .waveform_title {
   width:1in;
   text-align: center;
@@ -82,6 +86,6 @@ body {
 #waveform_view {
   border-style: solid; 
   border-width: 1px;
-  padding: 0.09in;
+  padding: 10px;
   background-color: #AAAAAA;
 }

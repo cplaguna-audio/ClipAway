@@ -32,7 +32,7 @@ onmessage = function(e) {
   var params = e.data[2];
   var block_size = params[1];
 
-  var clip_intervals = DetectClipping(audio_buffer, params);
+  var clip_intervals = DetectClipping(audio_buffer, channel_idx, params);
   var split_clip_intervals = SplitClipIntervals(clip_intervals, SHORT_BURST_CUTOFF_SAMPLES);
 
   postMessage([1.1, channel_idx, split_clip_intervals[0], split_clip_intervals[1]]);
