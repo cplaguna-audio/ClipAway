@@ -27,6 +27,10 @@ body {
   float:left;
 }
 
+#load_example {
+  float:right;
+}
+
 .waveform_title {
   width:1in;
   text-align: center;

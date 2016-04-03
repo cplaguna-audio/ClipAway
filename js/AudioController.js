@@ -6,6 +6,31 @@
  *                                                                           *
  *****************************************************************************/
 
+function LoadExample() {
+  var blob = null;
+  var xhr = new XMLHttpRequest(); 
+  xhr.open("GET", "resources/audio_examples/1/1_clipped.wav"); 
+  xhr.responseType = "blob";
+  xhr.onload = function() {
+    blob = xhr.response;
+    FILE_NAME = "clipping_example.wav";
+
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      AUDIO_CONTEXT.decodeAudioData(ev.target.result, function(buffer) {
+        INPUT_AUDIO_BUFFER = buffer;
+        PROCESSED_AUDIO_BUFFER = CopyAudioBuffer(AUDIO_CONTEXT, INPUT_AUDIO_BUFFER);
+        STATE.audio_loaded = true;
+        DoDetectClipping();
+      });
+    };
+    reader.readAsArrayBuffer(blob);
+    WAVEFORM_INTERACTOR.LoadAudio(blob);
+    RefreshIndex();
+  }
+  xhr.send();
+}
+
 function ProcessAudio() {
   console.time('Gain');
   var num_channels = INPUT_AUDIO_BUFFER.numberOfChannels;

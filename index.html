@@ -56,6 +56,7 @@
       <div id="original_waveform_container" >
         <div width="100%">
         <div id="file_name"></div>
+        <button id="load_example" onclick="LoadExample()">Load Example</button>
         <div class="waveform_title">Input</div>   
         <div class="small_padding"></div>
         <div id="original_audio_waveform" class="wavesurfer"></div>
@@ -69,19 +70,19 @@
 
       <div id="transport_container">
         <div id="transport_zoom_container">
-          <img id="zoom_in_button" class="zoom_image" type="image" src="resources/transport/plus.png"></input>
-          <img id="zoom_out_button" class="zoom_image" type="image" src="resources/transport/minus.png"></input>
+          <img id="zoom_in_button" class="zoom_image" type="image" src="resources/transport/plus.png"></img>
+          <img id="zoom_out_button" class="zoom_image" type="image" src="resources/transport/minus.png"></img>
         </div>
 
         <div id="transport_processing_container">
           <button id="declip_button" class="processing_button" onclick="DoDeclip();">Declip</button>
-          <button id="download_audio_button" class="processing_button" onclick="DownloadProcessedAudio()">Save Output</div>
+          <button id="download_audio_button" class="processing_button" onclick="DownloadProcessedAudio()">Save Output</button>
         </div>
 
         <div id="transport_buttons_container">
-          <img id="toggle_waveform_button" class="transport_image" type="image" src="resources/transport/toggle_original.png"></input>
-          <img id="play_pause_button" class="transport_image" type="image" src="resources/transport/play.png"></input>
-          <img id="play_selection_button" class="transport_image" type="image" src="resources/transport/play_selection.png"></input>
+          <img id="toggle_waveform_button" class="transport_image" type="image" src="resources/transport/toggle_original.png"></img>
+          <img id="play_pause_button" class="transport_image" type="image" src="resources/transport/play.png"></img>
+          <img id="play_selection_button" class="transport_image" type="image" src="resources/transport/play_selection.png"></img>
         </div>
       </div>
     </div>
