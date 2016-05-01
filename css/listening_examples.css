@@ -1,0 +1,39 @@
+#phase_examples, #declipping_examples {
+  border-style: solid; 
+  border-width: 1px;
+  background-color: #EEEEEE;
+  padding-left: 15px;
+  padding-right: 15px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  display: inline-block;
+}
+audio {
+  text-align: center;
+}
+table {
+  background-color: #EEEEEE;
+  padding: 10px;
+}
+td {
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+.phase_active a.phase_track, .declipping_active a.declipping_track {
+  color: #2D4086;
+  text-decoration: none;
+  font-weight: bold;
+}
+a.phase_track, a.declipping_track {
+  color: #1D60C6;
+  text-decoration: none;
+
+  display:block;
+}
+a.phase_track:hover, a.declipping_track:hover {
+  text-decoration: underline;
+}
+a.phase_track:visited, a.declipping_track:visited {
+  text-decoration: none;
+}
