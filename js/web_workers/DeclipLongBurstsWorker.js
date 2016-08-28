@@ -25,18 +25,17 @@
  */
 
 /*****************************************************************************\
- *                         GetKnownPointsWorker.js                           *
- *  The web worker that gets points at which the fft magnitudes are known.   *
- *  Long bursts are replaced by interpolating these magnitudes.
+ *                         DeclipLongBurstsWorker.js                         *
+ *  The web worker that declips long bursts.                                 *
  *****************************************************************************/
 var channel_idx = -1;
 var progress = 0;
 
-self.importScripts('Blocking.js',
-                   'Declip.js',
-                   '../ClipIntervalUtilities.js',
-                   '../FFTWrapper.js',
-                   '../SignalProcessing.js',
+self.importScripts('../modules/declipping/ClipIntervalUtilities.js',
+                   '../modules/declipping/Declip.js', 
+                   '../modules/signal_processing/Blocking.js',
+                   '../modules/signal_processing/FFTWrapper.js',
+                   '../modules/signal_processing/SignalProcessing.js',
                    '../third_party/nayuki-obj/fft.js');
 
 /*
@@ -44,40 +43,27 @@ self.importScripts('Blocking.js',
  *    e.data[0]: channel index
  *    e.data[1]: input audio buffer (Float32Array)
  *    e.data[2]: long_clip_intervals of this channel
+ *    e.data[3]: known points for interpolation.
  *    e.data[4]: params
  *      params[0]: sample rate
  *      params[1]: block size
  *      params[2]: hop size
- *      params[3]: mininum number of consecutive samples in order for a zero-padded
- *                 fft to be worthwhile.
  *
  *  Output:
  *    [0]: progress
  *    [1]: channel_idx
- *    [2]: known points
+ *    [2]: processed channel
  */
 onmessage = function(e) {
   var channel_idx = e.data[0];
   var audio_buffer = e.data[1];
   var clip_intervals = e.data[2];
-  var params = e.data[3];
-  var fs = params[0];
+  var known_points = e.data[3];
+  var params = e.data[4];
   var block_size = params[1];
-
+  
   InitFFTWrapper(block_size);
+  var processed_audio = DeclipLongBursts(audio_buffer, clip_intervals, known_points, channel_idx, params);
 
-  var channel_bands = SplitIntoBands(audio_buffer, fs);
-  var channel_low_band = channel_bands[0];
-  var channel_high_band = channel_bands[1];
-
-  /* 
-   * Filtering expands the clipping regions by the length of the filter's 
-   * impluse response. We need to enlarge the clip intervals to reflect this.
-   */
-  var filter_order = channel_bands[2];
-  high_clip_intervals = EnlargeIntervals(clip_intervals, filter_order * 2, audio_buffer.length);
-
-  var known_points = GetAllKnownPoints(channel_high_band, high_clip_intervals, channel_idx, params);
-
-  postMessage([1.1, channel_idx, known_points]);
+  postMessage([1.1, channel_idx, processed_audio]);
 }

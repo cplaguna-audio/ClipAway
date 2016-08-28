@@ -25,26 +25,24 @@
  */
 
 /*****************************************************************************\
- *                         DeclipLongBurstsWorker.js                         *
- *  The web worker that declips long bursts.                                 *
+ *                        AudioProcessingWorker.js                           *
+ *  The web worker that processes a channel of audio.                        *
  *****************************************************************************/
 var channel_idx = -1;
 var progress = 0;
+var GAIN = 0.4;
 
-self.importScripts('Blocking.js',
-                   'Declip.js',
-                   '../ClipIntervalUtilities.js',
-                   '../FFTWrapper.js',
-                   '../SignalProcessing.js',
+self.importScripts('../modules/declipping/Declip.js', 
+                   '../modules/signal_processing/Blocking.js',
+                   '../modules/signal_processing/FFTWrapper.js',
+                   '../modules/signal_processing/SignalProcessing.js',
                    '../third_party/nayuki-obj/fft.js');
 
 /*
  *  Input:
  *    e.data[0]: channel index
  *    e.data[1]: input audio buffer (Float32Array)
- *    e.data[2]: long_clip_intervals of this channel
- *    e.data[3]: known points for interpolation.
- *    e.data[4]: params
+ *    e.data[2]: params
  *      params[0]: sample rate
  *      params[1]: block size
  *      params[2]: hop size
@@ -52,18 +50,17 @@ self.importScripts('Blocking.js',
  *  Output:
  *    [0]: progress
  *    [1]: channel_idx
- *    [2]: processed channel
+ *    [2]: output audio (Float32Array) 
  */
 onmessage = function(e) {
-  var channel_idx = e.data[0];
-  var audio_buffer = e.data[1];
-  var clip_intervals = e.data[2];
-  var known_points = e.data[3];
-  var params = e.data[4];
-  var block_size = params[1];
-  
-  InitFFTWrapper(block_size);
-  var processed_audio = DeclipLongBursts(audio_buffer, clip_intervals, known_points, channel_idx, params);
+  channel_idx = e.data[0];
+  audio_buffer = e.data[1];
+  params = e.data[2];
+  block_size = params[1];
 
-  postMessage([1.1, channel_idx, processed_audio]);
+  InitFFTWrapper(block_size); 
+  out_buffer = new Float32Array(audio_buffer.length);
+  ApplyGainToChannel(audio_buffer, out_buffer, channel_idx, GAIN, params);
+
+  postMessage([1.1, channel_idx, out_buffer]);
 }

@@ -25,42 +25,39 @@
  */
 
 /*****************************************************************************\
- *                        AudioProcessingWorker.js                           *
- *  The web worker that processes a channel of audio.                        *
+ *                           DeclipShortBursts.js                            *
+ *  The web worker that declips short bursts by interpolating using cubic    *
+ *  spline interpolation.                                                    *
  *****************************************************************************/
 var channel_idx = -1;
 var progress = 0;
-var GAIN = 0.4;
 
-self.importScripts('Blocking.js',
-                   'Declip.js', 
-                   '../FFTWrapper.js',
-                   '../SignalProcessing.js',
-                   '../third_party/nayuki-obj/fft.js');
+self.importScripts('../modules/signal_processing/Blocking.js',
+                   '../modules/signal_processing/CubicSplineInterpolation.js',
+                   '../modules/signal_processing/SignalProcessing.js',
+                   '../modules/declipping/ClipIntervalUtilities.js',
+                   '../modules/declipping/Declip.js');
 
 /*
  *  Input:
  *    e.data[0]: channel index
  *    e.data[1]: input audio buffer (Float32Array)
- *    e.data[2]: params
+ *    e.data[2]: short_clip_intervals of this channel
+ *    e.data[3]: params
  *      params[0]: sample rate
- *      params[1]: block size
- *      params[2]: hop size
  *
  *  Output:
  *    [0]: progress
  *    [1]: channel_idx
- *    [2]: output audio (Float32Array) 
+ *    [2]: processed channel
  */
 onmessage = function(e) {
-  channel_idx = e.data[0];
-  audio_buffer = e.data[1];
-  params = e.data[2];
-  block_size = params[1];
+  var channel_idx = e.data[0];
+  var audio_buffer = e.data[1];
+  var clip_intervals = e.data[2];
+  var params = e.data[3];
 
-  InitFFTWrapper(block_size); 
-  out_buffer = new Float32Array(audio_buffer.length);
-  ApplyGainToChannel(audio_buffer, out_buffer, channel_idx, GAIN, params);
+  DeclipShortBurstsInPlace(audio_buffer, clip_intervals, channel_idx, params);
 
-  postMessage([1.1, channel_idx, out_buffer]);
+  postMessage([1.1, channel_idx, audio_buffer]);
 }

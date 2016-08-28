@@ -32,9 +32,9 @@ var channel_idx = -1;
 var progress = 0;
 var SHORT_BURST_CUTOFF_SAMPLES = 19;
 
-self.importScripts('../ClipIntervalUtilities.js',
-                   '../DetectClipping.js',
-                   '../SignalProcessing.js');
+self.importScripts('../modules/declipping/ClipIntervalUtilities.js',
+                   '../modules/declipping/DetectClipping.js',
+                   '../modules/signal_processing/SignalProcessing.js');
 
 /*
  *  Input:

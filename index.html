@@ -17,23 +17,25 @@
   <script src="js/third_party/w2ui/w2ui-1.4.3.min.js"></script>
 
   <script src="js/AudioController.js"></script>
-  <script src="js/ClipIntervalUtilities.js"></script>
-  <script src="js/CubicSplineInterpolation.js"></script>
-  <script src="js/DetectClipping.js"></script>
-  <script src="js/FFTWrapper.js"></script>
   <script src="js/IndexGlobal.js"></script>
-  <script src="js/Processing/AudioProcessingWorker.js"></script>
-  <script src="js/Processing/Blocking.js"></script>
-  <script src="js/Processing/ClippingDetectionWorker.js"></script>
-  <script src="js/Processing/Declip.js"></script>
-  <script src="js/Processing/DeclipShortBurstsWorker.js"></script>
-  <script src="js/Processing/DeclipLongBurstsWorker.js"></script>
-  <script src="js/Processing/GetKnownPointsWorker.js"></script>
-  <script src="js/SignalProcessing.js"></script>
-  <script src="js/Test.js"></script>
   <script src="js/WaveformInteractor.js"></script>
-  <script src="js/WavEncoder.js"></script>
   <script src="js/WebAudioUtils.js"></script>
+
+  <script src="js/modules/codecs/WavEncoder.js"></script>
+  <script src="js/modules/declipping/ClipIntervalUtilities.js"></script>
+  <script src="js/modules/declipping/Declip.js"></script>
+  <script src="js/modules/declipping/DetectClipping.js"></script>
+  <script src="js/modules/signal_processing/Blocking.js"></script>
+  <script src="js/modules/signal_processing/CubicSplineInterpolation.js"></script>
+  <script src="js/modules/signal_processing/FFTWrapper.js"></script>
+  <script src="js/modules/signal_processing/SignalProcessing.js"></script>
+  <script src="js/modules/test/Test.js"></script>
+
+  <script src="js/web_workers/AudioProcessingWorker.js"></script>
+  <script src="js/web_workers/ClippingDetectionWorker.js"></script>
+  <script src="js/web_workers/DeclipShortBurstsWorker.js"></script>
+  <script src="js/web_workers/DeclipLongBurstsWorker.js"></script>
+  <script src="js/web_workers/GetKnownPointsWorker.js"></script>
 </head>
 
 <body>

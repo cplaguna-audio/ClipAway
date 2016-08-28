@@ -73,7 +73,7 @@ function ProcessAudio() {
 
   if (window.Worker) {
     for(channel_idx = 0; channel_idx < num_channels; channel_idx++) {
-      var audio_processing_worker = new Worker("js/Processing/AudioProcessingWorker.js");
+      var audio_processing_worker = new Worker("js/web_workers/AudioProcessingWorker.js");
 
       audio_processing_worker.onmessage = function(e) {
         cur_progress = e.data[0];
@@ -128,7 +128,7 @@ function DoDeclipShortBursts() {
 
   if (window.Worker) {
     for(channel_idx = 0; channel_idx < num_channels; channel_idx++) {
-      var audio_processing_worker = new Worker("js/Processing/DeclipShortBurstsWorker.js");
+      var audio_processing_worker = new Worker("js/web_workers/DeclipShortBurstsWorker.js");
 
       audio_processing_worker.onmessage = function(e) {
         cur_progress = e.data[0];
@@ -191,7 +191,7 @@ function DoGetKnownPoints() {
 
   if (window.Worker) {
     for(channel_idx = 0; channel_idx < num_channels; channel_idx++) {
-      var audio_processing_worker = new Worker("js/Processing/GetKnownPointsWorker.js");
+      var audio_processing_worker = new Worker("js/web_workers/GetKnownPointsWorker.js");
 
       audio_processing_worker.onmessage = function(e) {
         cur_progress = e.data[0];
@@ -243,7 +243,7 @@ function DoDeclipLongBursts() {
 
   if (window.Worker) {
     for(channel_idx = 0; channel_idx < num_channels; channel_idx++) {
-      var audio_processing_worker = new Worker("js/Processing/DeclipLongBurstsWorker.js");
+      var audio_processing_worker = new Worker("js/web_workers/DeclipLongBurstsWorker.js");
 
       audio_processing_worker.onmessage = function(e) {
         cur_progress = e.data[0];
@@ -309,7 +309,7 @@ function DoDetectClipping() {
 
     if (window.Worker) {
       for(channel_idx = 0; channel_idx < num_channels; channel_idx++) {
-        var clipping_detection_worker = new Worker("js/Processing/ClippingDetectionWorker.js");
+        var clipping_detection_worker = new Worker("js/web_workers/ClippingDetectionWorker.js");
 
         clipping_detection_worker.onmessage = function(e) {
           var cur_progress = e.data[0];
