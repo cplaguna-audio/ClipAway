@@ -25,18 +25,12 @@
  */
 
 /*****************************************************************************\
- *                        AudioProcessingWorker.js                           *
- *  The web worker that processes a channel of audio.                        *
+ *                                  Gain.js                                  *
+ *  The web worker to apply a gain to a channel of audio.                    *
  *****************************************************************************/
 var channel_idx = -1;
-var progress = 0;
-var GAIN = 0.4;
 
-self.importScripts('../modules/declipping/Declip.js', 
-                   '../modules/signal_processing/Blocking.js',
-                   '../modules/signal_processing/FFTWrapper.js',
-                   '../modules/signal_processing/SignalProcessing.js',
-                   '../third_party/nayuki-obj/fft.js');
+self.importScripts('../modules/signal_processing/SignalProcessing.js');
 
 /*
  *  Input:
@@ -54,13 +48,10 @@ self.importScripts('../modules/declipping/Declip.js',
  */
 onmessage = function(e) {
   channel_idx = e.data[0];
-  audio_buffer = e.data[1];
-  params = e.data[2];
-  block_size = params[1];
+  var audio_buffer = e.data[1];
+  var params = e.data[2];
+  var gain = params[0];
 
-  InitFFTWrapper(block_size); 
-  out_buffer = new Float32Array(audio_buffer.length);
-  ApplyGainToChannel(audio_buffer, out_buffer, channel_idx, GAIN, params);
-
+  var out_buffer = SignalScale(audio_buffer, gain);
   postMessage([1.1, channel_idx, out_buffer]);
 }

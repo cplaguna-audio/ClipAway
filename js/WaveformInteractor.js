@@ -386,6 +386,19 @@ function WaveformInteractor(content_width_px) {
     this.EnableInteraction();
   };
 
+  this.UpdateInputAudio = function(input_audio_buffer, callback) {
+    console.log("UpdateInputAudio()");
+    this.Flush();
+    this.original_wavesurfer.loadDecodedBuffer(input_audio_buffer);
+    this.original_wavesurfer.empty();
+    this.original_wavesurfer.drawBuffer();
+
+    // Seek the processed wavesurfer to the current position.
+    cur_progress = this.processed_wavesurfer.getCurrentTime() / this.processed_wavesurfer.getDuration();
+    this.original_wavesurfer.seekTo(cur_progress);
+    callback();
+  };
+
   this.UpdateProcessedAudio = function(processed_audio_buffer, callback) {
     console.log("UpdateProcessedAudio()");
     this.Flush();

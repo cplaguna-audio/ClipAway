@@ -15,6 +15,8 @@
   <script src="js/third_party/nayuki-obj/fft.js"></script>
   <script src="js/third_party/plotly/plotly-latest.min.js"></script>
   <script src="js/third_party/w2ui/w2ui-1.4.3.min.js"></script>
+  <script src="js/third_party/web_evaluation_toolkit/loudness.js"></script>
+
 
   <script src="js/AudioController.js"></script>
   <script src="js/IndexGlobal.js"></script>
@@ -31,7 +33,7 @@
   <script src="js/modules/signal_processing/SignalProcessing.js"></script>
   <script src="js/modules/test/Test.js"></script>
 
-  <script src="js/web_workers/AudioProcessingWorker.js"></script>
+  <script src="js/web_workers/GainWorker.js"></script>
   <script src="js/web_workers/ClippingDetectionWorker.js"></script>
   <script src="js/web_workers/DeclipShortBurstsWorker.js"></script>
   <script src="js/web_workers/DeclipLongBurstsWorker.js"></script>
@@ -58,7 +60,7 @@
       <div id="original_waveform_container" >
         <div width="100%">
         <div id="file_name"></div>
-        <button id="load_example" onclick="LoadExample()">Load Example</button>
+        <button id="load_example" onclick="LoadExampleClicked()">Load Example</button>
         <div class="waveform_title">Input</div>   
         <div class="small_padding"></div>
         <div id="original_audio_waveform" class="wavesurfer"></div>
@@ -77,8 +79,8 @@
         </div>
 
         <div id="transport_processing_container">
-          <button id="declip_button" class="processing_button" onclick="DoDeclip();">Declip</button>
-          <button id="download_audio_button" class="processing_button" onclick="DownloadProcessedAudio()">Save Output</button>
+          <button id="declip_button" class="processing_button" onclick="DeclipClicked();">Declip</button>
+          <button id="download_audio_button" class="processing_button" onclick="SaveOutputClicked()">Save Output</button>
         </div>
 
         <div id="transport_buttons_container">

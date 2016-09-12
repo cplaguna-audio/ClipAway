@@ -422,3 +422,11 @@ function MyAverage(x) {
   }
   return average / normalization;
 }
+
+function DBToLinear(x) {
+  return Math.pow(10, x / 20.0);
+}
+
+function LinearToDB(x) {
+  return 20 * Math.log10(x);
+}

@@ -40,6 +40,7 @@ var RUN_TESTS = false;
 var BLOCK_SIZE = 512;
 var HOP_SIZE = 128;
 var MIN_FFT_LENGTH = 128;
+var TARGET_LUFS = -14;
 var WAVEFORM_INTERACTOR;
 
 var STATE = { audio_loaded: false,
@@ -50,6 +51,7 @@ var STATE = { audio_loaded: false,
 
 
 var AUDIO_CONTEXT = new AudioContext();
+var audioContext = AUDIO_CONTEXT;
 
 var FILE_NAME = "";
 

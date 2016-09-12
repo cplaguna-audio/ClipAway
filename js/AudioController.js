@@ -32,7 +32,28 @@
  *                                                                           *
  *****************************************************************************/
 
-function LoadExample() {
+// Queue of (audio processing) callbacks to be executed by a web worker.
+action_queue = [];
+
+function DoFirstAction() {
+  if(action_queue.length >= 1) {
+    top_callback = action_queue.shift();
+    OpenProgressBar();
+    top_callback();
+  }
+}
+
+function DoNextAction() {
+  if(action_queue.length >= 1) {
+    top_callback = action_queue.shift();
+    top_callback();
+  }
+  else {
+    CloseProgressBar();
+  }
+}
+
+function LoadExampleClicked() {
   var blob = null;
   var xhr = new XMLHttpRequest(); 
   xhr.open("GET", "resources/audio_examples/1/1_clipped.wav"); 
@@ -47,7 +68,10 @@ function LoadExample() {
         INPUT_AUDIO_BUFFER = buffer;
         PROCESSED_AUDIO_BUFFER = CopyAudioBuffer(AUDIO_CONTEXT, INPUT_AUDIO_BUFFER);
         STATE.audio_loaded = true;
-        DoDetectClipping();
+        action_queue.push(DoDetectClipping);
+        action_queue.push(DoNormalizeInput);
+        action_queue.push(DoNormalizeOutput);
+        DoFirstAction();
       });
     };
     reader.readAsArrayBuffer(blob);
@@ -57,54 +81,107 @@ function LoadExample() {
   xhr.send();
 }
 
-function ProcessAudio() {
-  console.time('Gain');
-  var num_channels = INPUT_AUDIO_BUFFER.numberOfChannels;
-
-  // Start up the progress bar pop-up.
-  PROGRESS_BAR_JQUERRY_ELEMENT.w2popup({showClose: false, modal:true});
-
-  UpdateProgressBar(0);
-  // Start the audio processing on a separate thread.
-  var progress = new Float32Array(num_channels);
-  for(channel_idx = 0; channel_idx < num_channels; channel_idx++) {
-    progress[channel_idx] = 0;
-  }
-
-  if (window.Worker) {
-    for(channel_idx = 0; channel_idx < num_channels; channel_idx++) {
-      var audio_processing_worker = new Worker("js/web_workers/AudioProcessingWorker.js");
-
-      audio_processing_worker.onmessage = function(e) {
-        cur_progress = e.data[0];
-        the_channel_idx = e.data[1]
-        progress[the_channel_idx] = cur_progress;
-        if(cur_progress > 1) {
-          processed_channel = e.data[2];
-          PROCESSED_AUDIO_BUFFER.copyToChannel(processed_channel, the_channel_idx);
-          WAVEFORM_INTERACTOR.UpdateProcessedAudio(PROCESSED_AUDIO_BUFFER, function() {});
-          min_progress = MyMin(progress);
-          if(min_progress > 1) {
-            console.timeEnd('Gain');
-            w2popup.close();
-
-          }
-        }
-        else {
-          avg_progress = MyAverage(progress);
-          UpdateProgressBar(avg_progress);
-        }
-
-      };
-
-      params = [INPUT_AUDIO_BUFFER.sampleRate, BLOCK_SIZE, HOP_SIZE];
-      audio_processing_worker.postMessage([channel_idx, INPUT_AUDIO_BUFFER.getChannelData(channel_idx), params]);
-    }
-  }
+function DeclipClicked() {
+  action_queue.push(DoDeclipShortBursts);
+  action_queue.push(DoGetKnownPoints);
+  action_queue.push(DoDeclipLongBursts);
+  action_queue.push(DoNormalizeInput);
+  action_queue.push(DoNormalizeOutput);
+  DoFirstAction();
 }
 
-function DoDeclip() {
-  DoDeclipShortBursts();
+function SaveOutputClicked() {
+  var wav_blob = AudioBufferToWavBlob(PROCESSED_AUDIO_BUFFER); 
+
+  // Click the link programmatically.
+  var download_element = document.getElementById("download_processed_audio");
+  var url = window.URL.createObjectURL(wav_blob);
+  download_element.href = url;
+  download_element.download = "ClipAway-Declipped-" + FILE_NAME + '.wav';
+  download_element.click();
+  window.URL.revokeObjectURL(url);
+}
+
+function DoNormalizeInput() {
+  DoLoudnessNormalization(true);
+}
+
+function DoNormalizeOutput() {
+  DoLoudnessNormalization(false);
+}
+
+function DoLoudnessNormalization(do_input_buffer) {
+  var audio_buffer = 0;
+  if(do_input_buffer) {
+    audio_buffer = INPUT_AUDIO_BUFFER;
+  }
+  else {
+    audio_buffer = PROCESSED_AUDIO_BUFFER;
+  }
+  console.time('NormalizeLoudness');
+
+  var loudness_wrapper = {
+      buffer: audio_buffer, 
+      ready: function() {}
+  };
+
+  var loudness_callback = function(buffer, do_input_buffer) {
+    var gain_db = TARGET_LUFS - audio_buffer.lufs;
+    var gain_linear = DBToLinear(gain_db);
+    console.log('gain: ' + gain_linear)
+    var num_channels = audio_buffer.numberOfChannels;
+
+    // Start up the progress bar pop-up.
+    ResetProgressBar('Normalizing Loudness');
+
+    // Start the audio processing on a separate thread.
+    var progress = new Float32Array(num_channels);
+    for(channel_idx = 0; channel_idx < num_channels; channel_idx++) {
+      progress[channel_idx] = 0;
+    }
+
+    if (window.Worker) {
+      for(channel_idx = 0; channel_idx < num_channels; channel_idx++) {
+        var audio_processing_worker = new Worker("js/web_workers/GainWorker.js");
+
+        audio_processing_worker.onmessage = function(e) {
+          cur_progress = e.data[0];
+          the_channel_idx = e.data[1]
+          progress[the_channel_idx] = cur_progress;
+          if(cur_progress > 1) {
+            processed_channel = e.data[2];
+            audio_buffer.copyToChannel(processed_channel, the_channel_idx);
+            
+            min_progress = MyMin(progress);
+            console.timeEnd('NormalizeLoudness');
+
+            if(min_progress > 1) {
+              the_callback = function() {
+                console.log('callback: gain');
+                DoNextAction();
+              }
+            }
+            if(do_input_buffer) {
+              WAVEFORM_INTERACTOR.UpdateInputAudio(audio_buffer, the_callback);
+            }
+            else {
+              WAVEFORM_INTERACTOR.UpdateProcessedAudio(audio_buffer, the_callback);
+            }
+
+          }
+          else {
+            avg_progress = MyAverage(progress);
+            UpdateProgressBar(avg_progress);
+          }
+        };
+
+        params = [gain_linear];
+        audio_processing_worker.postMessage([channel_idx, audio_buffer.getChannelData(channel_idx), params]);
+      }
+    }
+  };
+
+  calculateLoudness(loudness_wrapper, 'I', loudness_callback, do_input_buffer);
 }
 
 function DoDeclipShortBursts() {
@@ -112,13 +189,7 @@ function DoDeclipShortBursts() {
   var num_channels = INPUT_AUDIO_BUFFER.numberOfChannels;
 
   // Start up the progress bar pop-up.
-  var progress_title_element = document.getElementById('progress_title');
-  progress_title_element.innerHTML = "Processing Audio";
-  PROGRESS_BAR_JQUERRY_ELEMENT.w2popup({showClose: false, modal:true});
-  var progress_title_element = document.getElementById('progress_title');
-  progress_title_element.innerHTML = "1/3: Declipping Short Bursts";
-
-  UpdateProgressBar(0);
+  ResetProgressBar('1/3: Declipping Short Bursts');
 
   // Start the audio processing on a separate thread.
   var progress = new Float32Array(num_channels);
@@ -138,18 +209,16 @@ function DoDeclipShortBursts() {
           processed_channel = e.data[2];
           PROCESSED_AUDIO_BUFFER.copyToChannel(processed_channel, the_channel_idx);
           
-          var the_callback = function() {};
           min_progress = MyMin(progress);
           console.timeEnd('DeclipShort');
 
           if(min_progress > 1) {
             the_callback = function() {
               console.log('callback: short declipping');
-              // w2popup.close();
 
               STATE.did_declip_short_bursts = true;
               RefreshIndex();
-              DoGetKnownPoints();
+              DoNextAction();
             }
           }
           WAVEFORM_INTERACTOR.UpdateProcessedAudio(PROCESSED_AUDIO_BUFFER, the_callback);
@@ -178,10 +247,7 @@ function DoGetKnownPoints() {
   }
 
   // Start up the progress bar pop-up.
-  var progress_title_element = document.getElementById('progress_title');
-  progress_title_element.innerHTML = "2/3: Finding Reliable FFT Magnitudes";
-
-  UpdateProgressBar(0);
+  ResetProgressBar('2/3: Finding Reliable FFT Magnitudes');
 
   // Start the audio processing on a separate thread.
   var progress = new Float32Array(num_channels);
@@ -204,11 +270,10 @@ function DoGetKnownPoints() {
           min_progress = MyMin(progress);
           if(min_progress > 1) {
             console.timeEnd('GetKnownPoints');
-            // w2popup.close();
 
             STATE.did_get_known_points = true;
             RefreshIndex();
-            DoDeclipLongBursts();
+            DoNextAction();
           }
         }
         else {
@@ -231,15 +296,7 @@ function DoDeclipLongBursts() {
   var num_channels = INPUT_AUDIO_BUFFER.numberOfChannels;
 
   // Start up the progress bar pop-up.
-  var progress_title_element = document.getElementById('progress_title');
-  progress_title_element.innerHTML = "3/3: Declipping Long Bursts";
-  UpdateProgressBar(0);
-
-  // Start the audio processing on a separate thread.
-  var progress = new Float32Array(num_channels);
-  for(channel_idx = 0; channel_idx < num_channels; channel_idx++) {
-    progress[channel_idx] = 0;
-  }
+  ResetProgressBar('3/3: Declipping Long Bursts');
 
   if (window.Worker) {
     for(channel_idx = 0; channel_idx < num_channels; channel_idx++) {
@@ -272,14 +329,12 @@ function DoDeclipLongBursts() {
           avg_progress = MyAverage(progress);
           UpdateProgressBar(avg_progress);
         }
-
       };
 
       params = [INPUT_AUDIO_BUFFER.sampleRate, BLOCK_SIZE, HOP_SIZE];
       audio_processing_worker.postMessage([channel_idx, PROCESSED_AUDIO_BUFFER.getChannelData(channel_idx), LONG_CLIP_INTERVALS[channel_idx], KNOWN_POINTS[channel_idx], params]);
     }
-  }
-  
+  }  
 }
 
 function DoDetectClipping() {
@@ -294,12 +349,7 @@ function DoDetectClipping() {
       LONG_CLIP_INTERVALS[channel_idx] = [];
     }
 
-    // Start up the progress bar pop-up.
-    PROGRESS_BAR_JQUERRY_ELEMENT.w2popup({showClose: false, modal:true});
-    var progress_title_element = document.getElementById('progress_title');
-    progress_title_element.innerHTML = "Detecting Clipping";
-
-    UpdateProgressBar(0);
+    ResetProgressBar("Detect Clipping");
 
     // Start the audio processing on a separate thread.
     var progress = new Float32Array(num_channels);
@@ -347,6 +397,22 @@ function DoDetectClipping() {
   }
 }
 
+/* 
+ ********** Progress Bar Functions ***********
+ */
+function OpenProgressBar() {
+  PROGRESS_BAR_JQUERRY_ELEMENT.w2popup({showClose: false, modal:true});
+}
+function CloseProgressBar() {
+  w2popup.close();
+}
+
+function ResetProgressBar(progress_text) {
+  var progress_title_element = document.getElementById('progress_title');
+  progress_title_element.innerHTML = progress_text;
+  UpdateProgressBar(0);
+}
+
 function UpdateProgressBar(progress) {
   progress_percent = Math.floor(progress * 100);
   progress_element = document.getElementById('progress_bar_progress');
@@ -364,18 +430,6 @@ function DownloadInputAudio() {
   var url = window.URL.createObjectURL(wav_blob);
   download_element.href = url;
   download_element.download = "ClipAway-Unprocessed-" + output_file_name + '.wav';
-  download_element.click();
-  window.URL.revokeObjectURL(url);
-}
-
-function DownloadProcessedAudio() {
-  var wav_blob = AudioBufferToWavBlob(PROCESSED_AUDIO_BUFFER); 
-
-  // Click the link programmatically.
-  var download_element = document.getElementById("download_processed_audio");
-  var url = window.URL.createObjectURL(wav_blob);
-  download_element.href = url;
-  download_element.download = "ClipAway-Declipped-" + FILE_NAME + '.wav';
   download_element.click();
   window.URL.revokeObjectURL(url);
 }
@@ -458,58 +512,7 @@ function RefreshIndex() {
       processing_buttons[i].style.opacity = "0.2";
       processing_buttons[i].disabled = true;
     } 
-
   }
-
-/*
-  if(ShouldEnableDetectClipping()) {
-    var detect_clipping_button = document.getElementById("detect_clipping_button");
-    detect_clipping_button.disabled = false;
-    detect_clipping_button.style.opacity = "1";
-  }
-  else {
-    var detect_clipping_button = document.getElementById("detect_clipping_button");
-    detect_clipping_button.disabled = true;
-    detect_clipping_button.style.opacity = "0.2";
-  }
-
-  if(ShouldEnableDeclipShortBursts()) {
-    var declip_short_bursts_button = document.getElementById("declip_short_bursts_button");
-    declip_short_bursts_button.disabled = false;
-    declip_short_bursts_button.style.opacity = "1";
-  }
-  else {
-    var declip_short_bursts_button = document.getElementById("declip_short_bursts_button");
-    declip_short_bursts_button.disabled = true;
-    declip_short_bursts_button.style.opacity = "0.2";
-  }
-
-  if(ShouldEnableGetKnownPoints()) {
-    var get_known_points_button = document.getElementById("get_known_points_button");
-    get_known_points_button.disabled = false;
-    get_known_points_button.style.opacity = "1";
-  }
-  else {
-    var get_known_points_button = document.getElementById("get_known_points_button");
-    get_known_points_button.disabled = true;
-    get_known_points_button.style.opacity = "0.2";
-  }
-
-  if(ShouldEnableDeclipLongBursts()) {
-    var declip_long_bursts_button = document.getElementById("declip_long_bursts_button");
-    declip_long_bursts_button.disabled = false;
-    declip_long_bursts_button.style.opacity = "1";
-  }
-  else {
-    var declip_long_bursts_button = document.getElementById("declip_long_bursts_button");
-    declip_long_bursts_button.disabled = true;
-    declip_long_bursts_button.style.opacity = "0.2";
-  }
-  */
-
-
-  // 4. Check remove long bursts button.
-
 }
 
 function FlushIndex() {
