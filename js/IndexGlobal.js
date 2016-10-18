@@ -37,7 +37,7 @@ define([
   ], function() {
 
   // Global Variables for main.html.
-  var RUN_TESTS = true;
+  var RUN_TESTS = false;
 
   var MAX_NUM_CHANNELS = 2;
   var BLOCK_SIZE = 512;
