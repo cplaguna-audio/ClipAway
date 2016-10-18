@@ -30,7 +30,6 @@ var playlist;
 var tracks;
 var current;
 
-
 $(document).ready(function() {
   init_phase();
   init_declipping();
@@ -51,6 +50,7 @@ $(document).ready(function() {
         return false;
     });
   }
+
   function run_phase(link, player){
     player.src = link.attr('href');
     par = link.parent();
@@ -76,6 +76,7 @@ $(document).ready(function() {
         return false;
     });
   }
+  
   function run_declipping(link, player){
     player.src = link.attr('href');
     par = link.parent();

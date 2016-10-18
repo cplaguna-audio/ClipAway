@@ -28,30 +28,41 @@
  *                                  Gain.js                                  *
  *  The web worker to apply a gain to a channel of audio.                    *
  *****************************************************************************/
-var channel_idx = -1;
+self.importScripts('../third_party/requirejs/require.js');
 
-self.importScripts('../modules/signal_processing/SignalProcessing.js');
+require({
+        baseUrl: '../'
+    }, [
+      'modules/signal_processing/SignalProcessing'
+    ], function(SignalProcessing) {
 
-/*
- *  Input:
- *    e.data[0]: channel index
- *    e.data[1]: input audio buffer (Float32Array)
- *    e.data[2]: params
- *      params[0]: sample rate
- *      params[1]: block size
- *      params[2]: hop size
- *
- *  Output:
- *    [0]: progress
- *    [1]: channel_idx
- *    [2]: output audio (Float32Array) 
- */
-onmessage = function(e) {
-  channel_idx = e.data[0];
-  var audio_buffer = e.data[1];
-  var params = e.data[2];
-  var gain = params[0];
+  var channel_idx = -1;
 
-  var out_buffer = SignalScale(audio_buffer, gain);
-  postMessage([1.1, channel_idx, out_buffer]);
-}
+  /*
+   *  Input:
+   *    e.data[0]: channel index
+   *    e.data[1]: input audio buffer (Float32Array)
+   *    e.data[2]: params
+   *      params[0]: sample rate
+   *      params[1]: block size
+   *      params[2]: hop size
+   *    e.data[3]: do_input_buffer
+   *
+   *  Output:
+   *    [0]: progress
+   *    [1]: channel_idx
+   *    [2]: output audio (Float32Array) 
+   *    [3]: do_input_buffer
+   */
+  onmessage = function(e) {
+    channel_idx = e.data[0];
+    var audio_buffer = e.data[1];
+    var params = e.data[2];
+    var gain = params[0];
+    var do_input_buffer = e.data[3];
+
+    var out_buffer = SignalProcessing.SignalScale(audio_buffer, gain);
+    postMessage([1.1, channel_idx, out_buffer, do_input_buffer]);
+  }
+
+});

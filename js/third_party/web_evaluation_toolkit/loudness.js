@@ -7,13 +7,14 @@
  *  multiple objects
  */
 
+
 var interval_cal_loudness_event = null;
 
 if (typeof OfflineAudioContext == "undefined"){
   var OfflineAudioContext = webkitOfflineAudioContext;
 }
 
-function calculateLoudness(buffer, timescale, l_callback, do_input_buffer, target, offlineContext)
+function calculateLoudness(audioContext, buffer, timescale, l_callback, do_input_buffer, target, offlineContext)
 {
   // This function returns the EBU R 128 specification loudness model and sets the linear gain required to match -23 LUFS
   // buffer -> Web Audio API Buffer object
